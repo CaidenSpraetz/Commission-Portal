@@ -537,39 +537,36 @@
             loadUserCommissionData();
         }
 
-        // Load commission data from Azure based on user role
+        // Load commission data - try saved data first, then demo
         async function loadUserCommissionData() {
             try {
-                log('Loading commission data from Azure...', 'info');
+                log('Loading commission data...', 'info');
                 
-                const params = new URLSearchParams({
-                    userId: currentUser.userId,
-                    userRole: currentUser.role,
-                    employeeId: currentUser.employeeId,
-                    managedEmployees: currentUser.managedEmployees.join(',')
-                });
-
-                const response = await fetch(`/api/get-commission-data?${params}`);
-
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
+                // Try to load from local storage first
+                if (loadFromLocalStorage()) {
+                    // Filter data based on user role
+                    filterDataByRole();
+                    updateDashboard();
+                    return;
                 }
-
-                const result = await response.json();
                 
-                if (result.success) {
-                    commissionData = result.data || [];
-                    updateDashboard(result.summary);
-                    log(`Loaded ${result.data ? result.data.length : 0} commission records`, 'success');
-                } else {
-                    throw new Error(result.error || 'Failed to load commission data');
-                }
+                log('No saved data found, loading demo data...', 'warning');
+                loadDemoData();
 
             } catch (error) {
-                log(`Error loading commission data: ${error.message}`, 'error');
-                log('Using demonstration data instead...', 'warning');
+                log(`Error loading data: ${error.message}`, 'error');
                 loadDemoData();
             }
+        }
+
+        function filterDataByRole() {
+            if (currentUser.role === 'user') {
+                commissionData = commissionData.filter(record => record.employeeId === currentUser.employeeId);
+            } else if (currentUser.role === 'manager') {
+                const teamIds = [...currentUser.managedEmployees, currentUser.employeeId];
+                commissionData = commissionData.filter(record => teamIds.includes(record.employeeId));
+            }
+            // Admin sees all data (no filtering)
         }
 
         // Process commission files via Azure Function
@@ -870,3 +867,4 @@
     </script>
 </body>
 </html>
+

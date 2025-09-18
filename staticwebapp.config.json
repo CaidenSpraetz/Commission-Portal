@@ -2,7 +2,7 @@
   "routes": [
     {
       "route": "/*",
-      "serve": "/commission-portal.html",
+      "serve": "/index.html",
       "statusCode": 200
     }
   ],

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commission Portal - SharePoint Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .role-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background: #e8f5e8;
+            color: #388e3c;
+        }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); }
+        .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .stat-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            position: relative;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .commission-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .commission-table th,
+        .commission-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .commission-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .commission-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .commission-table tbody tr:hover {
+            background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+            transform: scale(1.01);
+        }
+
+        .hidden { display: none; }
+
+        .success, .info, .warning, .error {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid;
+        }
+
+        .success { background: #d4edda; color: #155724; border-left-color: #28a745; }
+        .info { background: #d1ecf1; color: #0c5460; border-left-color: #17a2b8; }
+        .warning { background: #fff3cd; color: #856404; border-left-color: #ffc107; }
+        .error { background: #f8d7da; color: #721c24; border-left-color: #dc3545; }
+
+        .sharepoint-status {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 8px solid #28a745;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .log-container {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #00ff88;
+            border-radius: 15px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .file-item {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tier-indicator {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tier-base { background: #e3f2fd; color: #1565c0; }
+        .tier-1 { background: #fff3e0; color: #e65100; }
+        .tier-2 { background: #f3e5f5; color: #7b1fa2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Container -->
+        <div id="authContainer" class="auth-container">
+            <h2 style="color: #667eea; margin-bottom: 30px;">
+                Commission Portal - SharePoint Connected
+            </h2>
+            
+            <div class="success">
+                <strong>SharePoint Integration Configured</strong><br>
+                <strong>Site:</strong> Paramount852-Accounting<br>
+                <strong>Location:</strong> /Accounting/BH TOA DATA/BH TOA DATA<br>
+                <strong>Files:</strong> Master Structure.xlsx + Bullhorn TOA files
+            </div>
+
+            <div style="margin: 30px 0;">
+                <div class="loading-spinner"></div>
+                <span style="color: #667eea; font-weight: 500;">Initializing SharePoint Connection...</span>
+            </div>
+
+            <button class="btn" onclick="initializeSharePointAccess()" style="font-size: 18px; padding: 20px 40px;">
+                Access Commission Data
+            </button>
+
+            <p style="margin-top: 20px; color: #666; font-size: 14px;">
+                Uses your current SharePoint session - no additional login required
+            </p>
+        </div>
+
+        <!-- Main Application -->
+        <div id="mainApp" class="hidden">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">Commission Portal - Live SharePoint Data</div>
+                <div class="user-info">
+                    <span id="welcomeText">SharePoint User</span>
+                    <span class="role-badge">Connected</span>
+                    <button class="btn btn-secondary" onclick="refreshData()">Refresh</button>
+                </div>
+            </div>
+
+            <!-- SharePoint Status Dashboard -->
+            <div class="sharepoint-status">
+                <h3 style="margin-bottom: 15px; color: #28a745;">
+                    Live SharePoint Integration Status
+                </h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="connectionStatus">Scanning...</div>
+                        <div style="font-size: 12px; color: #666;">Connection Status</div>
+                    </div>
+                    <div class="status-item">
+                        <div style="font-size: 24px; font-weight: bold; color: #28a745;" id="masterStatus">Loading...</div>
+                        <div style="font-size: 12px; color: #666;">Master Structure</div>
+                    </div>
+                    <div class="status-item">
+                        <div style="font-size: 24px; font-weight: bold; color: #17a2b8;" id="toaFilesCount">0</div>
+                        <div style="font-size: 12px; color: #666;">TOA Files</div>
+                    </div>
+                    <div class="status-item">
+                        <div style="font-size: 24px; font-weight: bold; color: #ffc107;" id="lastSync">Never</div>
+                        <div style="font-size: 12px; color: #666;">Last Sync</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-success" onclick="processAllCommissionData()">Calculate All Commissions</button>
+                    <button class="btn" onclick="viewDiscoveredFiles()">View Files (<span id="fileCount">0</span>)</button>
+                </div>
+            </div>
+
+            <!-- File Discovery Results -->
+            <div id="fileListContainer" class="main-content hidden">
+                <h3>Discovered SharePoint Files</h3>
+                <div id="fileList"></div>
+            </div>
+
+            <!-- Commission Dashboard -->
+            <div class="main-content">
+                <h3>Commission Dashboard - Real-Time SharePoint Data</h3>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalCommission">$0</div>
+                        <div class="stat-label">Total Commission Calculated</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalGP">$0</div>
+                        <div class="stat-label">Total Gross Profit</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgCommissionRate">0%</div>
+                        <div class="stat-label">Average Commission Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="uniqueEmployees">0</div>
+                        <div class="stat-label">Active Employees</div>
+                    </div>
+                </div>
+
+                <table class="commission-table">
+                    <thead>
+                        <tr>
+                            <th>Week Ending</th>
+                            <th>Employee</th>
+                            <th>Client</th>
+                            <th>Gross Profit</th>
+                            <th>Cumulative GP</th>
+                            <th>Tier Status</th>
+                            <th>Commission Rate</th>
+                            <th>Commission Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="commissionTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: #666; padding: 40px;">
+                                <div class="loading-spinner"></div>
+                                Click "Access Commission Data" to load your SharePoint files
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="log-container" id="logContainer">
+                <div style="color: #00ff88;">[SYSTEM] Commission Portal initialized with SharePoint integration</div>
+                <div style="color: #87ceeb;">[CONFIG] Target Site: appriver3651016231.sharepoint.com</div>
+                <div style="color: #87ceeb;">[CONFIG] Data Path: /sites/Paramount852-Accounting/Shared Documents/Accounting/BH TOA DATA/BH TOA DATA</div>
+                <div style="color: #ffd700;">[READY] Waiting for SharePoint connection...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        // SharePoint Configuration - UPDATE THESE PATHS
+        const SHAREPOINT_CONFIG = {
+            siteUrl: 'https://appriver3651016231.sharepoint.com/sites/Paramount852-Accounting',
+            libraryName: 'Shared Documents', 
+            dataPath: '/Accounting/BH TOA DATA/BH TOA DATA',
+            masterStructureFile: 'Master Structure.xlsx'
+        };
+
+        // Global Variables
+        let currentUser = null;
+        let sharePointFiles = [];
+        let commissionData = [];
+        let employeeRules = {};
+        let cumulativeGP = {};
+        let isConnected = false;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Commission Portal loading...', 'system');
+            
+            // Check if we're already in SharePoint context
+            if (typeof _spPageContextInfo !== 'undefined') {
+                log('SharePoint context detected', 'success');
+                currentUser = _spPageContextInfo.userDisplayName || 'SharePoint User';
+                initializeInSharePointContext();
+            } else {
+                log('Standalone mode - will use REST API', 'info');
+                // Hide the loading spinner immediately and enable the button
+                setTimeout(() => {
+                    const spinner = document.querySelector('.loading-spinner');
+                    if (spinner) spinner.style.display = 'none';
+                    log('Ready to connect - click the Access Commission Data button', 'success');
+                }, 1000);
+            }
+        });
+
+        function initializeInSharePointContext() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            log(`Welcome ${currentUser}`, 'success');
+            discoverSharePointFiles();
+        }
+
+        function initializeSharePointAccess() {
+            log('Initializing SharePoint access...', 'info');
+            
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            currentUser = 'SharePoint User';
+            document.getElementById('welcomeText').textContent = `Welcome, ${currentUser}`;
+            
+            log('Interface loaded successfully', 'success');
+            setTimeout(() => {
+                discoverSharePointFiles();
+            }, 1000);
+        }
+
+        // Discover SharePoint files using REST API
+        async function discoverSharePointFiles() {
+            try {
+                log('Scanning SharePoint for commission files...', 'info');
+                document.getElementById('connectionStatus').textContent = 'Scanning...';
+                document.getElementById('connectionStatus').className = 'pulse';
+
+                const folderUrl = `${SHAREPOINT_CONFIG.siteUrl}/_api/web/GetFolderByServerRelativeUrl('/sites/Paramount852-Accounting/Shared Documents${SHAREPOINT_CONFIG.dataPath}')/Files`;
+                
+                log(`Requesting: ${folderUrl}`, 'info');
+                
+                const response = await fetch(folderUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json;odata=verbose',
+                        'Content-Type': 'application/json;odata=verbose'
+                    },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const files = data.d.results;
+                    
+                    await processDiscoveredFiles(files);
+                    log(`SharePoint scan complete: ${files.length} files discovered`, 'success');
+                    
+                } else {
+                    log(`SharePoint API returned ${response.status}, using simulation mode`, 'warning');
+                    simulateFileDiscovery();
+                }
+
+            } catch (error) {
+                log(`SharePoint access error: ${error.message}`, 'error');
+                log('Falling back to simulation mode with sample data', 'warning');
+                simulateFileDiscovery();
+            }
+        }
+
+        async function processDiscoveredFiles(files) {
+            sharePointFiles = files;
+            
+            const toaFiles = files.filter(file => 
+                file.Name.includes('Bullhorn TOA WE') && 
+                (file.Name.endsWith('.csv') || file.Name.endsWith('.xlsx'))
+            );
+            
+            const masterFile = files.find(file => 
+                file.Name.toLowerCase().includes('master structure') &&
+                (file.Name.endsWith('.xlsx') || file.Name.endsWith('.xls'))
+            );
+
+            document.getElementById('connectionStatus').textContent = 'Connected';
+            document.getElementById('connectionStatus').className = '';
+            document.getElementById('toaFilesCount').textContent = toaFiles.length;
+            document.getElementById('masterStatus').textContent = masterFile ? 'Found' : 'Missing';
+            document.getElementById('fileCount').textContent = files.length;
+            document.getElementById('lastSync').textContent = new Date().toLocaleTimeString();
+
+            log(`Analysis: ${toaFiles.length} TOA files, ${masterFile ? '1' : '0'} Master Structure file`, 'info');
+            
+            displayDiscoveredFiles(files);
+            isConnected = true;
+
+            if (masterFile && toaFiles.length > 0) {
+                log('Ready to calculate commissions! Click "Calculate All Commissions" button.', 'success');
+            }
+        }
+
+        function simulateFileDiscovery() {
+            const simulatedFiles = [
+                {
+                    Name: 'Master Structure.xlsx',
+                    ServerRelativeUrl: `${SHAREPOINT_CONFIG.dataPath}/Master Structure.xlsx`,
+                    TimeLastModified: new Date().toISOString(),
+                    Length: 45678
+                },
+                {
+                    Name: 'Bullhorn TOA WE 01-07-2025.csv',
+                    ServerRelativeUrl: `${SHAREPOINT_CONFIG.dataPath}/Bullhorn TOA WE 01-07-2025.csv`,
+                    TimeLastModified: new Date().toISOString(),
+                    Length: 123456
+                }
+            ];
+
+            processDiscoveredFiles(simulatedFiles);
+            log('Using simulated SharePoint data for demonstration', 'warning');
+        }
+
+        function displayDiscoveredFiles(files) {
+            const fileListContainer = document.getElementById('fileList');
+            fileListContainer.innerHTML = '';
+
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                const fileType = file.Name.includes('Master') ? 'Master Structure' :
+                                file.Name.includes('Bullhorn TOA WE') ? 'TOA Data' : 'Other';
+                
+                const fileSize = file.Length ? `${Math.round(file.Length / 1024)} KB` : 'Unknown size';
+                const lastModified = file.TimeLastModified ? 
+                    new Date(file.TimeLastModified).toLocaleDateString() : 'Unknown date';
+
+                fileItem.innerHTML = `
+                    <div>
+                        <div style="font-weight: bold; color: #667eea;">${fileType}</div>
+                        <div style="font-size: 14px; margin: 5px 0;">${file.Name}</div>
+                        <div style="font-size: 12px; color: #666;">Modified: ${lastModified}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 12px; color: #28a745; font-weight: bold;">${fileSize}</div>
+                        <div style="font-size: 11px; color: #666;">SharePoint</div>
+                    </div>
+                `;
+                
+                fileListContainer.appendChild(fileItem);
+            });
+        }
+
+        function viewDiscoveredFiles() {
+            const fileListContainer = document.getElementById('fileListContainer');
+            fileListContainer.classList.toggle('hidden');
+        }
+
+        // REAL FILE PROCESSING FUNCTIONS
+
+        async function processAllCommissionData() {
+            if (!isConnected) {
+                log('Not connected to SharePoint. Please initialize connection first.', 'error');
+                return;
+            }
+
+            try {
+                log('Starting commission calculation process...', 'info');
+                
+                commissionData = [];
+                employeeRules = {};
+                cumulativeGP = {};
+
+                await processMasterStructureReal();
+                await processTOAFilesReal();
+                
+                calculateFinalCommissions();
+                updateCommissionDashboard();
+                
+                log('Commission calculation completed successfully!', 'success');
+                log(`Results: ${commissionData.length} commission records calculated`, 'success');
+
+            } catch (error) {
+                log(`Commission calculation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function processMasterStructureReal() {
+            try {
+                log('Processing Master Structure from SharePoint...', 'info');
+                
+                const masterFile = sharePointFiles.find(file => 
+                    file.Name.toLowerCase().includes('master structure') &&
+                    (file.Name.endsWith('.xlsx') || file.Name.endsWith('.xls'))
+                );
+
+                if (!masterFile) {
+                    throw new Error('Master Structure file not found');
+                }
+
+                const fileUrl = `${SHAREPOINT_CONFIG.siteUrl}${masterFile.ServerRelativeUrl}`;
+                const response = await fetch(fileUrl, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to download file: ${response.status}`);
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(firstSheet);
+
+                data.forEach(row => {
+                    const employeeId = row['Employee ID'] || row['EmployeeID'] || row['ID'];
+                    const name = row['Employee Name'] || row['Name'] || row['Employee'];
+                    const baseRate = parseFloat(row['Base Rate'] || row['BaseRate'] || 0) / 100;
+                    
+                    if (employeeId && name) {
+                        employeeRules[employeeId] = {
+                            name: name,
+                            baseRate: baseRate,
+                            tiers: []
+                        };
+
+                        // Add tiers dynamically
+                        for (let i = 1; i <= 5; i++) {
+                            const tierGP = row[`Tier ${i} GP`] || row[`Tier${i}GP`];
+                            const tierRate = row[`Tier ${i} Rate`] || row[`Tier${i}Rate`];
+                            
+                            if (tierGP && tierRate) {
+                                employeeRules[employeeId].tiers.push({
+                                    threshold: parseFloat(tierGP),
+                                    rate: parseFloat(tierRate) / 100
+                                });
+                            }
+                        }
+
+                        cumulativeGP[employeeId] = 0;
+                    }
+                });
+
+                log(`Master Structure processed: ${Object.keys(employeeRules).length} employees`, 'success');
+                
+            } catch (error) {
+                log(`Master Structure processing failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function processTOAFilesReal() {
+            try {
+                log('Processing TOA files from SharePoint...', 'info');
+                
+                const toaFiles = sharePointFiles.filter(file => 
+                    file.Name.includes('Bullhorn TOA WE') && 
+                    (file.Name.endsWith('.csv') || file.Name.endsWith('.xlsx'))
+                );
+
+                if (toaFiles.length === 0) {
+                    throw new Error('No TOA files found');
+                }
+
+                let allTOAData = [];
+
+                for (const file of toaFiles) {
+                    const fileUrl = `${SHAREPOINT_CONFIG.siteUrl}${file.ServerRelativeUrl}`;
+                    const response = await fetch(fileUrl, {
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        log(`Failed to download ${file.Name}: ${response.status}`, 'warning');
+                        continue;
+                    }
+
+                    let fileData;
+                    
+                    if (file.Name.endsWith('.csv')) {
+                        const text = await response.text();
+                        fileData = parseCSV(text);
+                    } else {
+                        const arrayBuffer = await response.arrayBuffer();
+                        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        fileData = XLSX.utils.sheet_to_json(firstSheet);
+                    }
+
+                    allTOAData = allTOAData.concat(fileData);
+                    log(`Processed ${file.Name}: ${fileData.length} records`, 'success');
+                }
+
+                // Sort by date
+                allTOAData.sort((a, b) => {
+                    const dateA = new Date(a['WE date'] || a['Week Ending'] || a['Date']);
+                    const dateB = new Date(b['WE date'] || b['Week Ending'] || b['Date']);
+                    return dateA - dateB;
+                });
+
+                // Process records
+                allTOAData.forEach(record => {
+                    const weDate = record['WE date'] || record['Week Ending'] || record['Date'];
+                    const gp = parseFloat(record.GP || record['Gross Profit'] || record['GrossProfit'] || 0);
+                    const client = record.Client || record['Client Name'] || record['ClientName'];
+                    const recruiterId = record['Placement Recruiter ID'] || record['RecruiterID'];
+                    const salesId = record['Placement Sales ID'] || record['SalesID'];
+
+                    if (recruiterId && employeeRules[recruiterId]) {
+                        processEmployeeCommission(recruiterId, weDate, client, gp, 'Recruiter');
+                    }
+
+                    if (salesId && employeeRules[salesId]) {
+                        processEmployeeCommission(salesId, weDate, client, gp, 'Sales');
+                    }
+                });
+
+                log(`All TOA files processed: ${allTOAData.length} total records`, 'success');
+
+            } catch (error) {
+                log(`TOA files processing failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                    const row = {};
+                    
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    
+                    data.push(row);
+                }
+            }
+
+            return data;
+        }
+
+        function processEmployeeCommission(employeeId, weDate, client, gp, type) {
+            cumulativeGP[employeeId] += gp;
+            
+            const rate = getCommissionRate(employeeId, cumulativeGP[employeeId]);
+            const commission = gp * rate;
+            const tierStatus = getTierStatus(employeeId, cumulativeGP[employeeId]);
+            
+            commissionData.push({
+                date: weDate,
+                employee: employeeRules[employeeId].name,
+                employeeId: employeeId,
+                client: client,
+                grossProfit: gp,
+                cumulativeGP: cumulativeGP[employeeId],
+                commissionRate: rate,
+                commission: commission,
+                type: type,
+                tierStatus: tierStatus
+            });
+        }
+
+        function getCommissionRate(employeeId, cumulativeGP) {
+            const employee = employeeRules[employeeId];
+            if (!employee) return 0;
+
+            let rate = employee.baseRate;
+
+            const sortedTiers = employee.tiers.sort((a, b) => b.threshold - a.threshold);
+            for (const tier of sortedTiers) {
+                if (cumulativeGP >= tier.threshold) {
+                    rate = tier.rate;
+                    break;
+                }
+            }
+
+            return rate;
+        }
+
+        function getTierStatus(employeeId, cumulativeGP) {
+            const employee = employeeRules[employeeId];
+            if (!employee) return 'Unknown';
+
+            const sortedTiers = employee.tiers.sort((a, b) => b.threshold - a.threshold);
+            for (let i = 0; i < sortedTiers.length; i++) {
+                if (cumulativeGP >= sortedTiers[i].threshold) {
+                    return `Tier ${sortedTiers.length - i}`;
+                }
+            }
+
+            return 'Base';
+        }
+
+        function calculateFinalCommissions() {
+            log('Calculating final commission totals...', 'info');
+            commissionData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            log(`Commission calculations complete: ${commissionData.length} records processed`, 'success');
+        }
+
+        function updateCommissionDashboard() {
+            const totalCommission = commissionData.reduce((sum, record) => sum + record.commission, 0);
+            const totalGP = commissionData.reduce((sum, record) => sum + record.grossProfit, 0);
+            const avgCommissionRate = totalGP > 0 ? (totalCommission / totalGP) * 100 : 0;
+            const uniqueEmployees = new Set(commissionData.map(record => record.employeeId)).size;
+
+            document.getElementById('totalCommission').textContent = `${totalCommission.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            document.getElementById('totalGP').textContent = `${totalGP.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            document.getElementById('avgCommissionRate').textContent = `${avgCommissionRate.toFixed(1)}%`;
+            document.getElementById('uniqueEmployees').textContent = uniqueEmployees;
+
+            const tableBody = document.getElementById('commissionTableBody');
+            tableBody.innerHTML = '';
+
+            commissionData.forEach(record => {
+                const row = document.createElement('tr');
+                
+                const tierClass = record.tierStatus === 'Base' ? 'tier-base' : 
+                                 record.tierStatus === 'Tier 1' ? 'tier-1' : 'tier-2';
+                
+                row.innerHTML = `
+                    <td>${new Date(record.date).toLocaleDateString()}</td>
+                    <td>
+                        <div style="font-weight: bold;">${record.employee}</div>
+                        <div style="font-size: 12px; color: #666;">${record.type}</div>
+                    </td>
+                    <td>${record.client}</td>
+                    <td>${record.grossProfit.toLocaleString('en-US')}</td>
+                    <td>${record.cumulativeGP.toLocaleString('en-US')}</td>
+                    <td><span class="tier-indicator ${tierClass}">${record.tierStatus}</span></td>
+                    <td>${(record.commissionRate * 100).toFixed(1)}%</td>
+                    <td style="font-weight: bold; color: #28a745;">${record.commission.toLocaleString('en-US', {maximumFractionDigits: 0})}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+
+            log('Dashboard updated with commission calculations', 'success');
+        }
+
+        function refreshData() {
+            log('Refreshing SharePoint data...', 'info');
+            discoverSharePointFiles();
+        }
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let color, prefix;
+            switch(type) {
+                case 'system': color = '#00ff88'; prefix = '[SYSTEM]'; break;
+                case 'success': color = '#28a745'; prefix = '[SUCCESS]'; break;
+                case 'error': color = '#dc3545'; prefix = '[ERROR]'; break;
+                case 'warning': color = '#ffc107'; prefix = '[WARNING]'; break;
+                default: color = '#87ceeb'; prefix = '[INFO]'; break;
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.color = color;
+            logEntry.innerHTML = `${prefix} [${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        window.SharePointCommissionPortal = {
+            initializeSharePointAccess,
+            refreshData,
+            processAllCommissionData,
+            viewDiscoveredFiles,
+            log
+        };
+    </script>
+</body>
+</html>

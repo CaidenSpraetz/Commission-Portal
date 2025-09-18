@@ -6,11 +6,7 @@
     <title>Paramount Commission Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Lato:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Montserrat', 'Lato', 'Segoe UI', sans-serif;
@@ -20,10 +16,7 @@
             padding: 20px;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1400px; margin: 0 auto; }
 
         .login-container {
             background: rgba(255, 255, 255, 0.95);
@@ -55,11 +48,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .logo svg {
-            height: 40px;
-            width: auto;
         }
 
         .user-info {
@@ -111,16 +99,6 @@
         .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); }
         .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
 
-        .permission-denied {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 5px solid #dc3545;
-            margin: 20px 0;
-            text-align: center;
-        }
-
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -158,8 +136,7 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
 
-        .commission-table th,
-        .commission-table td {
+        .commission-table th, .commission-table td {
             padding: 15px;
             text-align: left;
             border-bottom: 1px solid #eee;
@@ -224,9 +201,6 @@
         .tier-1 { background: #fff3e0; color: #e65100; }
         .tier-2 { background: #f3e5f5; color: #7b1fa2; }
 
-        .admin-only { border-left: 4px solid #ffc107; padding-left: 15px; }
-        .manager-only { border-left: 4px solid #28a745; padding-left: 15px; }
-
         .loading {
             display: inline-block;
             width: 20px;
@@ -247,37 +221,7 @@
     <div class="container">
         <!-- Login Screen -->
         <div id="loginScreen" class="login-container">
-            <div style="margin-bottom: 30px;">
-                <svg height="60" viewBox="0 0 1500 952.02" style="max-width: 300px;">
-                    <defs>
-                        <linearGradient id="linear-gradient" x1="427.35" y1="288.78" x2="1055.89" y2="288.78" gradientUnits="userSpaceOnUse">
-                            <stop offset="0" stop-color="#18efe4"/>
-                            <stop offset="1" stop-color="#12096d"/>
-                        </linearGradient>
-                        <linearGradient id="linear-gradient-2" x1="216.99" y1="839.76" x2="1268.21" y2="839.76" gradientUnits="userSpaceOnUse">
-                            <stop offset="0" stop-color="#18efe4"/>
-                            <stop offset="1" stop-color="#12096d"/>
-                        </linearGradient>
-                    </defs>
-                    <g>
-                        <polygon fill="url(#linear-gradient)" points="451.77 560.41 740.26 59.41 1031.42 560.41 1055.89 560.41 740.17 17.16 427.35 560.41 451.77 560.41"/>
-                        <polygon fill="url(#linear-gradient-2)" points="1143.81 753.79 1231.44 904.58 253.59 904.58 340.42 753.79 316 753.79 216.99 925.74 1268.21 925.74 1168.28 753.79 1143.81 753.79"/>
-                    </g>
-                    <g fill="#12096d">
-                        <path d="M97.81,605.73c8.14,7.07,12.22,16.98,12.22,29.73s-4.1,23.67-12.3,31.01c-8.2,7.35-19.71,11.02-34.52,11.02h-29.73v37.25h-16.4v-119.61h46.14c14.92,0,26.46,3.53,34.6,10.6ZM86.11,655.88c5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58l-29.05.17v52.46h29.05c10.25,0,18.11-2.25,23.58-6.75Z"/>
-                        <path d="M256.3,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM187.1,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                        <path d="M411.45,714.75l-23.75-37.59c-2.73.23-4.96.34-6.66.34h-30.42v37.25h-16.4v-119.61h46.82c15.15,0,26.85,3.5,35.12,10.51,8.26,7.01,12.39,16.95,12.39,29.82,0,9.68-2.25,17.83-6.75,24.43-4.5,6.61-10.96,11.39-19.39,14.35l27.85,40.5h-18.8ZM381.03,662.63c10.25,0,18.11-2.25,23.58-6.75,5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58h-30.42v52.63h30.42Z"/>
-                        <path d="M591.55,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM522.35,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                        <path d="M669.46,595.14h19.48l43.74,84.07,43.4-84.07h19.65v119.61h-15.38l-.17-95.52-42.55,82.88h-10.08l-42.89-82.88v95.52h-15.21v-119.61Z"/>
-                        <path d="M956.62,602.14c9.63,5.36,17.23,12.67,22.81,21.96,5.58,9.29,8.37,19.51,8.37,30.67s-2.79,21.44-8.37,30.84c-5.58,9.4-13.19,16.8-22.81,22.21-9.63,5.41-20.19,8.12-31.7,8.12s-22.07-2.7-31.7-8.12c-9.63-5.41-17.23-12.82-22.81-22.21-5.58-9.4-8.37-19.68-8.37-30.84s2.79-21.39,8.37-30.67c5.58-9.28,13.16-16.6,22.73-21.96,9.57-5.35,20.16-8.03,31.78-8.03s22.07,2.68,31.7,8.03ZM901.94,614.96c-7.12,4.1-12.79,9.65-17,16.66-4.22,7.01-6.32,14.72-6.32,23.15s2.1,16.18,6.32,23.24c4.21,7.07,9.88,12.67,17,16.83,7.12,4.16,14.84,6.24,23.15,6.24s15.97-2.08,22.98-6.24c7.01-4.16,12.59-9.76,16.74-16.83,4.16-7.06,6.24-14.81,6.24-23.24s-2.08-16.15-6.24-23.15c-4.16-7.01-9.74-12.56-16.74-16.66-7.01-4.1-14.67-6.15-22.98-6.15s-16.04,2.05-23.15,6.15Z"/>
-                        <path d="M1077.08,691.77c6.09,6.21,14.49,9.31,25.2,9.31s18.91-3.1,24.95-9.31c6.04-6.21,9.06-14.84,9.06-25.89v-70.74h16.4v70.74c0,15.61-4.47,27.85-13.41,36.74-8.94,8.89-21.27,13.33-36.99,13.33s-28.25-4.44-37.25-13.33c-9-8.89-13.5-21.13-13.5-36.74v-70.74h16.4v70.74c0,11.05,3.05,19.68,9.14,25.89Z"/>
-                        <path d="M1312.12,595.14h16.23v119.61h-16.57l-68.35-92.61v92.61h-16.4v-119.61h16.57l68.52,92.79v-92.79Z"/>
-                        <path d="M1390.04,595.14h93.47v15.04h-38.62v104.57h-16.4v-104.57h-38.45v-15.04Z"/>
-                    </g>
-                </svg>
-            </div>
-
-            <h4 style="color: #12096d; margin-bottom: 20px;">Select Your Access Level</h4>
+            <h2 style="color: #12096d; margin-bottom: 30px;">Commission Portal Access</h2>
             
             <div style="margin-bottom: 20px;">
                 <button class="btn" onclick="loginAs('admin', 'Administrator', '473682')" style="width: 200px;">Administrator</button><br>
@@ -300,34 +244,7 @@
             <!-- Header -->
             <div class="header">
                 <div class="logo">
-                    <svg height="40" viewBox="0 0 1500 952.02">
-                        <defs>
-                            <linearGradient id="header-gradient" x1="427.35" y1="288.78" x2="1055.89" y2="288.78" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#18efe4"/>
-                                <stop offset="1" stop-color="#12096d"/>
-                            </linearGradient>
-                            <linearGradient id="header-gradient-2" x1="216.99" y1="839.76" x2="1268.21" y2="839.76" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#18efe4"/>
-                                <stop offset="1" stop-color="#12096d"/>
-                            </linearGradient>
-                        </defs>
-                        <g>
-                            <polygon fill="url(#header-gradient)" points="451.77 560.41 740.26 59.41 1031.42 560.41 1055.89 560.41 740.17 17.16 427.35 560.41 451.77 560.41"/>
-                            <polygon fill="url(#header-gradient-2)" points="1143.81 753.79 1231.44 904.58 253.59 904.58 340.42 753.79 316 753.79 216.99 925.74 1268.21 925.74 1168.28 753.79 1143.81 753.79"/>
-                        </g>
-                        <g fill="#12096d">
-                            <path d="M97.81,605.73c8.14,7.07,12.22,16.98,12.22,29.73s-4.1,23.67-12.3,31.01c-8.2,7.35-19.71,11.02-34.52,11.02h-29.73v37.25h-16.4v-119.61h46.14c14.92,0,26.46,3.53,34.6,10.6ZM86.11,655.88c5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58l-29.05.17v52.46h29.05c10.25,0,18.11-2.25,23.58-6.75Z"/>
-                            <path d="M256.3,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM187.1,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                            <path d="M411.45,714.75l-23.75-37.59c-2.73.23-4.96.34-6.66.34h-30.42v37.25h-16.4v-119.61h46.82c15.15,0,26.85,3.5,35.12,10.51,8.26,7.01,12.39,16.95,12.39,29.82,0,9.68-2.25,17.83-6.75,24.43-4.5,6.61-10.96,11.39-19.39,14.35l27.85,40.5h-18.8ZM381.03,662.63c10.25,0,18.11-2.25,23.58-6.75,5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58h-30.42v52.63h30.42Z"/>
-                            <path d="M591.55,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM522.35,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                            <path d="M669.46,595.14h19.48l43.74,84.07,43.4-84.07h19.65v119.61h-15.38l-.17-95.52-42.55,82.88h-10.08l-42.89-82.88v95.52h-15.21v-119.61Z"/>
-                            <path d="M956.62,602.14c9.63,5.36,17.23,12.67,22.81,21.96,5.58,9.29,8.37,19.51,8.37,30.67s-2.79,21.44-8.37,30.84c-5.58,9.4-13.19,16.8-22.81,22.21-9.63,5.41-20.19,8.12-31.7,8.12s-22.07-2.7-31.7-8.12c-9.63-5.41-17.23-12.82-22.81-22.21-5.58-9.4-8.37-19.68-8.37-30.84s2.79-21.39,8.37-30.67c5.58-9.28,13.16-16.6,22.73-21.96,9.57-5.35,20.16-8.03,31.78-8.03s22.07,2.68,31.7,8.03ZM901.94,614.96c-7.12,4.1-12.79,9.65-17,16.66-4.22,7.01-6.32,14.72-6.32,23.15s2.1,16.18,6.32,23.24c4.21,7.07,9.88,12.67,17,16.83,7.12,4.16,14.84,6.24,23.15,6.24s15.97-2.08,22.98-6.24c7.01-4.16,12.59-9.76,16.74-16.83,4.16-7.06,6.24-14.81,6.24-23.24s-2.08-16.15-6.24-23.15c-4.16-7.01-9.74-12.56-16.74-16.66-7.01-4.1-14.67-6.15-22.98-6.15s-16.04,2.05-23.15,6.15Z"/>
-                            <path d="M1077.08,691.77c6.09,6.21,14.49,9.31,25.2,9.31s18.91-3.1,24.95-9.31c6.04-6.21,9.06-14.84,9.06-25.89v-70.74h16.4v70.74c0,15.61-4.47,27.85-13.41,36.74-8.94,8.89-21.27,13.33-36.99,13.33s-28.25-4.44-37.25-13.33c-9-8.89-13.5-21.13-13.5-36.74v-70.74h16.4v70.74c0,11.05,3.05,19.68,9.14,25.89Z"/>
-                            <path d="M1312.12,595.14h16.23v119.61h-16.57l-68.35-92.61v92.61h-16.4v-119.61h16.57l68.52,92.79v-92.79Z"/>
-                            <path d="M1390.04,595.14h93.47v15.04h-38.62v104.57h-16.4v-104.57h-38.45v-15.04Z"/>
-                        </g>
-                    </svg>
-                    <span>Commission Portal</span>
+                    <span>Paramount Commission Portal</span>
                 </div>
                 <div class="user-info">
                     <span id="welcomeText">User</span>
@@ -336,31 +253,20 @@
                 </div>
             </div>
 
-            <!-- Admin Only: System Management -->
-            <div id="adminContent" class="main-content admin-only hidden">
-                <h3>System Administration</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <button class="btn btn-success" onclick="manageUsers()">Manage Users</button>
-                    <button class="btn btn-secondary" onclick="viewSystemLogs()">System Logs</button>
-                    <button class="btn" onclick="exportAllData()">Export All Data</button>
-                    <button class="btn btn-secondary" onclick="configureSettings()">Configure Settings</button>
-                </div>
-            </div>
-
             <!-- Manager/Admin: File Upload -->
-            <div id="managerContent" class="main-content manager-only hidden">
+            <div id="managerContent" class="main-content hidden">
                 <h3>Upload Commission Files</h3>
                 
                 <div class="file-upload">
                     <h4 style="color: #12096d; margin-bottom: 15px;">Master Structure File</h4>
                     <input type="file" id="masterFile" class="file-input" accept=".xlsx,.xls" />
-                    <p style="color: #666; font-size: 14px;">Upload your Master Structure Excel file with employee commission rules</p>
+                    <p style="color: #666; font-size: 14px;">Upload your Master Structure Excel file</p>
                 </div>
 
                 <div class="file-upload">
                     <h4 style="color: #12096d; margin-bottom: 15px;">TOA Files</h4>
                     <input type="file" id="toaFiles" class="file-input" accept=".csv,.xlsx" multiple />
-                    <p style="color: #666; font-size: 14px;">Upload your Bullhorn TOA files (CSV or Excel) - can select multiple files</p>
+                    <p style="color: #666; font-size: 14px;">Upload your Bullhorn TOA files (multiple files allowed)</p>
                 </div>
 
                 <div style="text-align: center; margin: 30px 0;">
@@ -372,7 +278,7 @@
                 </div>
             </div>
 
-            <!-- All Users: Commission Dashboard -->
+            <!-- Commission Dashboard -->
             <div class="main-content">
                 <h3 id="dashboardTitle">Commission Dashboard</h3>
                 
@@ -411,7 +317,7 @@
                     <tbody id="commissionTableBody">
                         <tr>
                             <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
-                                <span id="tableMessage">Select your role above to view commission data</span>
+                                Select your role to view commission data
                             </td>
                         </tr>
                     </tbody>
@@ -420,7 +326,7 @@
 
             <!-- Activity Log -->
             <div class="log-container" id="logContainer">
-                <div style="color: #00ff88;">[SYSTEM] Paramount Commission Portal - Azure hosted with authentication</div>
+                <div style="color: #00ff88;">[SYSTEM] Commission Portal loaded - Local processing mode</div>
                 <div style="color: #87ceeb;">[INFO] Role-based access control enabled</div>
                 <div style="color: #ffd700;">[READY] Select your access level to begin</div>
             </div>
@@ -430,44 +336,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // User session management
-        let currentUser = {
-            userId: null,
-            role: null,
-            name: null,
-            employeeId: null,
-            managedEmployees: [],
-            permissions: []
-        };
-
+        let currentUser = { userId: null, role: null, name: null, employeeId: null, managedEmployees: [], permissions: [] };
         let commissionData = [];
+        let employeeRules = {};
 
         // Permission system
         const PERMISSIONS = {
             VIEW_ALL_DATA: 'view_all_data',
             UPLOAD_FILES: 'upload_files', 
-            MANAGE_USERS: 'manage_users',
-            VIEW_SYSTEM_LOGS: 'view_system_logs',
-            EXPORT_DATA: 'export_data',
             VIEW_OWN_DATA: 'view_own_data'
         };
 
         const ROLE_PERMISSIONS = {
-            admin: [
-                PERMISSIONS.VIEW_ALL_DATA,
-                PERMISSIONS.UPLOAD_FILES,
-                PERMISSIONS.MANAGE_USERS,
-                PERMISSIONS.VIEW_SYSTEM_LOGS,
-                PERMISSIONS.EXPORT_DATA,
-                PERMISSIONS.VIEW_OWN_DATA
-            ],
-            manager: [
-                PERMISSIONS.VIEW_ALL_DATA,
-                PERMISSIONS.UPLOAD_FILES,
-                PERMISSIONS.VIEW_OWN_DATA
-            ],
-            user: [
-                PERMISSIONS.VIEW_OWN_DATA
-            ]
+            admin: [PERMISSIONS.VIEW_ALL_DATA, PERMISSIONS.UPLOAD_FILES, PERMISSIONS.VIEW_OWN_DATA],
+            manager: [PERMISSIONS.VIEW_ALL_DATA, PERMISSIONS.UPLOAD_FILES, PERMISSIONS.VIEW_OWN_DATA],
+            user: [PERMISSIONS.VIEW_OWN_DATA]
         };
 
         // Authentication system
@@ -503,73 +386,42 @@
         }
 
         function updateUIForRole() {
-            const welcomeText = document.getElementById('welcomeText');
-            const roleBadge = document.getElementById('roleBadge');
-            const dashboardTitle = document.getElementById('dashboardTitle');
-            const tableMessage = document.getElementById('tableMessage');
+            document.getElementById('welcomeText').textContent = currentUser.name;
+            document.getElementById('roleBadge').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            document.getElementById('roleBadge').className = `role-badge role-${currentUser.role}`;
             
-            welcomeText.textContent = currentUser.name;
-            roleBadge.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-            roleBadge.className = `role-badge role-${currentUser.role}`;
-            
-            // Show/hide content based on role
-            const adminContent = document.getElementById('adminContent');
             const managerContent = document.getElementById('managerContent');
+            const dashboardTitle = document.getElementById('dashboardTitle');
             
             if (currentUser.role === 'admin') {
-                adminContent.classList.remove('hidden');
                 managerContent.classList.remove('hidden');
                 dashboardTitle.textContent = 'Commission Dashboard - All Employees';
-                tableMessage.textContent = 'Loading all commission data...';
             } else if (currentUser.role === 'manager') {
-                adminContent.classList.add('hidden');
                 managerContent.classList.remove('hidden');
                 dashboardTitle.textContent = 'Commission Dashboard - Your Team';
-                tableMessage.textContent = 'Loading team commission data...';
             } else {
-                adminContent.classList.add('hidden');
                 managerContent.classList.add('hidden');
                 dashboardTitle.textContent = 'Your Commission Dashboard';
-                tableMessage.textContent = 'Loading your commission data...';
             }
 
-            // Load user's commission data
             loadUserCommissionData();
         }
 
-        // Load commission data - try saved data first, then demo
-        async function loadUserCommissionData() {
-            try {
-                log('Loading commission data...', 'info');
-                
-                // Try to load from local storage first
-                if (loadFromLocalStorage()) {
-                    // Filter data based on user role
-                    filterDataByRole();
-                    updateDashboard();
-                    return;
-                }
-                
+        // Load commission data - NO SERVER CALLS
+        function loadUserCommissionData() {
+            log('Loading commission data...', 'info');
+            
+            if (loadFromBrowserStorage()) {
+                filterDataByRole();
+                updateDashboard();
+                log(`Loaded ${commissionData.length} commission records from browser storage`, 'success');
+            } else {
                 log('No saved data found, loading demo data...', 'warning');
                 loadDemoData();
-
-            } catch (error) {
-                log(`Error loading data: ${error.message}`, 'error');
-                loadDemoData();
             }
         }
 
-        function filterDataByRole() {
-            if (currentUser.role === 'user') {
-                commissionData = commissionData.filter(record => record.employeeId === currentUser.employeeId);
-            } else if (currentUser.role === 'manager') {
-                const teamIds = [...currentUser.managedEmployees, currentUser.employeeId];
-                commissionData = commissionData.filter(record => teamIds.includes(record.employeeId));
-            }
-            // Admin sees all data (no filtering)
-        }
-
-        // Process commission files via Azure Function
+        // Process commission files locally
         async function processCommissionFiles() {
             const masterFileInput = document.getElementById('masterFile');
             const toaFilesInput = document.getElementById('toaFiles');
@@ -581,105 +433,247 @@
                 return;
             }
 
-            if (!masterFileInput.files.length) {
-                log('Please select a Master Structure file', 'error');
-                return;
-            }
-
-            if (!toaFilesInput.files.length) {
-                log('Please select at least one TOA file', 'error');
+            if (!masterFileInput.files.length || !toaFilesInput.files.length) {
+                log('Please select both Master Structure and TOA files', 'error');
                 return;
             }
 
             try {
-                // Show loading state
                 uploadButton.textContent = 'Processing...';
                 uploadSpinner.classList.remove('hidden');
                 
-                log('Uploading and processing commission files...', 'info');
+                log('Processing commission files locally...', 'info');
                 
-                // Convert files to base64 for API transmission
-                const masterFile = await fileToBase64(masterFileInput.files[0]);
-                const toaFiles = await Promise.all(
-                    Array.from(toaFilesInput.files).map(file => fileToBase64(file))
-                );
-
-                const response = await fetch('/api/process-commission-files', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        masterFile: masterFile,
-                        toaFiles: toaFiles,
-                        userId: currentUser.userId,
-                        userRole: currentUser.role
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-
-                const result = await response.json();
+                await processMasterFile(masterFileInput.files[0]);
+                await processTOAFiles(toaFilesInput.files);
                 
-                if (result.success) {
-                    log(`Commission processing completed: ${result.summary.recordCount} records processed`, 'success');
-                    log(`Total commission calculated: ${result.summary.totalCommission.toLocaleString()}`, 'success');
-                    
-                    // Refresh data for all users
-                    await loadUserCommissionData();
-                } else {
-                    throw new Error(result.error || 'Processing failed');
-                }
+                calculateCommissions();
+                saveToBrowserStorage();
+                updateDashboard();
+                
+                log(`Commission processing completed: ${commissionData.length} records processed`, 'success');
+                clearFiles();
 
             } catch (error) {
                 log(`Error processing files: ${error.message}`, 'error');
             } finally {
-                // Reset loading state
                 uploadButton.textContent = 'Calculate Commissions';
                 uploadSpinner.classList.add('hidden');
             }
         }
 
-        // Helper function to convert file to base64
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    resolve({
-                        name: file.name,
-                        content: reader.result.split(',')[1], // Remove data:... prefix
-                        size: file.size
-                    });
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
+        async function processMasterFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(worksheet);
+
+            employeeRules = {};
+            
+            data.forEach(row => {
+                const employeeId = row['Employee ID'] || row['EmployeeID'] || row['ID'];
+                const name = row['Employee Name'] || row['Name'] || row['Employee'];
+                const baseRate = parseFloat(row['Base Rate'] || row['BaseRate'] || 0) / 100;
+                
+                if (employeeId && name) {
+                    employeeRules[employeeId] = {
+                        name: name,
+                        baseRate: baseRate,
+                        tiers: []
+                    };
+
+                    for (let i = 1; i <= 5; i++) {
+                        const tierGP = row[`Tier ${i} GP`] || row[`Tier${i}GP`];
+                        const tierRate = row[`Tier ${i} Rate`] || row[`Tier${i}Rate`];
+                        
+                        if (tierGP && tierRate) {
+                            employeeRules[employeeId].tiers.push({
+                                threshold: parseFloat(tierGP),
+                                rate: parseFloat(tierRate) / 100
+                            });
+                        }
+                    }
+                }
             });
+
+            log(`Master Structure processed: ${Object.keys(employeeRules).length} employees`, 'success');
         }
 
-        // Clear file inputs
-        function clearFiles() {
-            document.getElementById('masterFile').value = '';
-            document.getElementById('toaFiles').value = '';
-            log('File selections cleared', 'info');
+        async function processTOAFiles(files) {
+            let allTOAData = [];
+
+            for (const file of files) {
+                let fileData;
+                if (file.name.endsWith('.csv')) {
+                    const text = await file.text();
+                    fileData = parseCSV(text);
+                } else {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    fileData = XLSX.utils.sheet_to_json(worksheet);
+                }
+                allTOAData = allTOAData.concat(fileData);
+            }
+
+            allTOAData.sort((a, b) => {
+                const dateA = new Date(a['WE date'] || a['Week Ending'] || a['Date']);
+                const dateB = new Date(b['WE date'] || b['Week Ending'] || b['Date']);
+                return dateA - dateB;
+            });
+
+            window.processedTOAData = allTOAData;
+            log(`TOA processing complete: ${allTOAData.length} records`, 'success');
         }
 
-        // Update dashboard with Azure data
-        function updateDashboard(summary = null) {
-            const stats = summary || {
-                totalCommission: commissionData.reduce((sum, record) => sum + (record.commission || 0), 0),
-                totalGP: commissionData.reduce((sum, record) => sum + (record.grossProfit || 0), 0),
-                employeeCount: new Set(commissionData.map(record => record.employeeId)).size,
-                recordCount: commissionData.length
-            };
+        function calculateCommissions() {
+            commissionData = [];
+            const cumulativeGP = {};
+            
+            Object.keys(employeeRules).forEach(id => {
+                cumulativeGP[id] = 0;
+            });
 
-            const avgCommissionRate = stats.totalGP > 0 ? (stats.totalCommission / stats.totalGP) * 100 : 0;
+            window.processedTOAData.forEach(record => {
+                const weDate = record['WE date'] || record['Week Ending'] || record['Date'];
+                const gp = parseFloat(record.GP || record['Gross Profit'] || record['GrossProfit'] || 0);
+                const client = record.Client || record['Client Name'] || record['ClientName'];
+                const recruiterId = record['Placement Recruiter ID'] || record['RecruiterID'];
+                const salesId = record['Placement Sales ID'] || record['SalesID'];
 
-            document.getElementById('totalCommission').textContent = `${stats.totalCommission.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-            document.getElementById('totalGP').textContent = `${stats.totalGP.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+                if (recruiterId && employeeRules[recruiterId]) {
+                    cumulativeGP[recruiterId] += gp;
+                    const rate = getCommissionRate(employeeRules[recruiterId], cumulativeGP[recruiterId]);
+                    const commission = gp * rate;
+                    
+                    commissionData.push({
+                        date: weDate,
+                        employee: employeeRules[recruiterId].name,
+                        employeeId: recruiterId,
+                        client: client,
+                        grossProfit: gp,
+                        cumulativeGP: cumulativeGP[recruiterId],
+                        commissionRate: rate,
+                        commission: commission,
+                        type: 'Recruiter',
+                        tierStatus: getTierStatus(employeeRules[recruiterId], cumulativeGP[recruiterId])
+                    });
+                }
+
+                if (salesId && employeeRules[salesId]) {
+                    cumulativeGP[salesId] += gp;
+                    const rate = getCommissionRate(employeeRules[salesId], cumulativeGP[salesId]);
+                    const commission = gp * rate;
+                    
+                    commissionData.push({
+                        date: weDate,
+                        employee: employeeRules[salesId].name,
+                        employeeId: salesId,
+                        client: client,
+                        grossProfit: gp,
+                        cumulativeGP: cumulativeGP[salesId],
+                        commissionRate: rate,
+                        commission: commission,
+                        type: 'Sales',
+                        tierStatus: getTierStatus(employeeRules[salesId], cumulativeGP[salesId])
+                    });
+                }
+            });
+
+            commissionData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+
+        function getCommissionRate(employee, cumulativeGP) {
+            let rate = employee.baseRate;
+            const sortedTiers = employee.tiers.sort((a, b) => b.threshold - a.threshold);
+            
+            for (const tier of sortedTiers) {
+                if (cumulativeGP >= tier.threshold) {
+                    rate = tier.rate;
+                    break;
+                }
+            }
+            return rate;
+        }
+
+        function getTierStatus(employee, cumulativeGP) {
+            const sortedTiers = employee.tiers.sort((a, b) => b.threshold - a.threshold);
+            for (let i = 0; i < sortedTiers.length; i++) {
+                if (cumulativeGP >= sortedTiers[i].threshold) {
+                    return `Tier ${sortedTiers.length - i}`;
+                }
+            }
+            return 'Base';
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        function saveToBrowserStorage() {
+            try {
+                const dataToSave = {
+                    commissionData: commissionData,
+                    employeeRules: employeeRules,
+                    timestamp: new Date().toISOString(),
+                    uploadedBy: currentUser.userId
+                };
+                
+                localStorage.setItem('commissionPortalData', JSON.stringify(dataToSave));
+                log('Commission data saved locally', 'success');
+            } catch (error) {
+                log(`Error saving data: ${error.message}`, 'warning');
+            }
+        }
+
+        function loadFromBrowserStorage() {
+            try {
+                const savedData = localStorage.getItem('commissionPortalData');
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    commissionData = parsed.commissionData || [];
+                    employeeRules = parsed.employeeRules || {};
+                    return true;
+                }
+            } catch (error) {
+                log(`Error loading saved data: ${error.message}`, 'warning');
+            }
+            return false;
+        }
+
+        function filterDataByRole() {
+            if (currentUser.role === 'user') {
+                commissionData = commissionData.filter(record => record.employeeId === currentUser.employeeId);
+            } else if (currentUser.role === 'manager') {
+                const teamIds = [...currentUser.managedEmployees, currentUser.employeeId];
+                commissionData = commissionData.filter(record => teamIds.includes(record.employeeId));
+            }
+        }
+
+        function updateDashboard() {
+            const totalCommission = commissionData.reduce((sum, record) => sum + (record.commission || 0), 0);
+            const totalGP = commissionData.reduce((sum, record) => sum + (record.grossProfit || 0), 0);
+            const avgCommissionRate = totalGP > 0 ? (totalCommission / totalGP) * 100 : 0;
+            const uniqueEmployees = new Set(commissionData.map(record => record.employeeId)).size;
+
+            document.getElementById('totalCommission').textContent = `$${totalCommission.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            document.getElementById('totalGP').textContent = `$${totalGP.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
             document.getElementById('avgCommissionRate').textContent = `${avgCommissionRate.toFixed(1)}%`;
-            document.getElementById('uniqueEmployees').textContent = stats.employeeCount;
+            document.getElementById('uniqueEmployees').textContent = uniqueEmployees;
 
             updateCommissionTable();
         }
@@ -697,7 +691,6 @@
 
             commissionData.forEach(record => {
                 const row = document.createElement('tr');
-                
                 const tierClass = record.tierStatus === 'Base' ? 'tier-base' : 
                                  record.tierStatus === 'Tier 1' ? 'tier-1' : 'tier-2';
                 
@@ -719,7 +712,6 @@
             });
         }
 
-        // Load demo data for testing when Azure isn't available
         function loadDemoData() {
             const demoData = [
                 {
@@ -740,27 +732,14 @@
                     employeeId: 'REC001',
                     client: 'XYZ Ltd',
                     grossProfit: 22000,
-                    cumulativeGP: 37000,
+                    cumulativeGP: 22000,
                     commissionRate: 0.30,
                     commission: 6600,
                     type: 'Recruiter',
                     tierStatus: 'Base'
-                },
-                {
-                    date: '2025-01-21',
-                    employee: 'Jane Doe',
-                    employeeId: 'SAL001',
-                    client: 'DEF Inc',
-                    grossProfit: 18000,
-                    cumulativeGP: 18000,
-                    commissionRate: 0.28,
-                    commission: 5040,
-                    type: 'Sales',
-                    tierStatus: 'Base'
                 }
             ];
 
-            // Filter demo data based on user role
             if (currentUser.role === 'user') {
                 commissionData = demoData.filter(record => record.employeeId === currentUser.employeeId);
             } else if (currentUser.role === 'manager') {
@@ -774,71 +753,12 @@
             log('Demo data loaded based on your role', 'info');
         }
 
-        // Admin functions (placeholder implementations)
-        function manageUsers() {
-            if (!hasPermission(PERMISSIONS.MANAGE_USERS)) {
-                log('Access denied: Insufficient permissions', 'error');
-                return;
-            }
-            log('User management feature coming soon', 'info');
+        function clearFiles() {
+            document.getElementById('masterFile').value = '';
+            document.getElementById('toaFiles').value = '';
+            log('File selections cleared', 'info');
         }
 
-        function viewSystemLogs() {
-            if (!hasPermission(PERMISSIONS.VIEW_SYSTEM_LOGS)) {
-                log('Access denied: Insufficient permissions', 'error');
-                return;
-            }
-            log('System logs feature coming soon', 'info');
-        }
-
-        function exportAllData() {
-            if (!hasPermission(PERMISSIONS.EXPORT_DATA)) {
-                log('Access denied: Insufficient permissions', 'error');
-                return;
-            }
-            
-            if (commissionData.length === 0) {
-                log('No data to export', 'warning');
-                return;
-            }
-
-            // Create CSV export
-            const headers = ['Date', 'Employee', 'Client', 'Gross Profit', 'Cumulative GP', 'Tier', 'Rate', 'Commission'];
-            const csvContent = [
-                headers.join(','),
-                ...commissionData.map(record => [
-                    record.date,
-                    `"${record.employee}"`,
-                    `"${record.client}"`,
-                    record.grossProfit,
-                    record.cumulativeGP,
-                    record.tierStatus,
-                    (record.commissionRate * 100).toFixed(1) + '%',
-                    record.commission
-                ].join(','))
-            ].join('\n');
-
-            // Download file
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `commission-data-${new Date().toISOString().slice(0, 10)}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            log('Commission data exported to CSV', 'success');
-        }
-
-        function configureSettings() {
-            if (!hasPermission(PERMISSIONS.MANAGE_USERS)) {
-                log('Access denied: Insufficient permissions', 'error');
-                return;
-            }
-            log('Configuration settings feature coming soon', 'info');
-        }
-
-        // Logging function with color coding
         function log(message, type = 'info') {
             const logContainer = document.getElementById('logContainer');
             const timestamp = new Date().toLocaleTimeString();
@@ -861,7 +781,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            log('Paramount Commission Portal loaded successfully', 'success');
+            log('Commission Portal loaded successfully - Local processing mode', 'success');
             log('Select your access level to begin using the system', 'info');
         });
     </script>

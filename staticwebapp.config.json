@@ -1,0 +1,17 @@
+{
+  "routes": [
+    {
+      "route": "/*",
+      "serve": "/commission-portal.html",
+      "statusCode": 200
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html"
+  },
+  "mimeTypes": {
+    ".html": "text/html",
+    ".css": "text/css",
+    ".js": "application/javascript"
+  }
+}

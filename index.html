@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Commission Management Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,7 +12,7 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
             min-height: 100vh;
             color: #2d3748;
@@ -121,9 +120,19 @@
             color: white;
         }
 
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
         .btn-danger {
             background: #f56565;
             color: white;
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #4a5568;
         }
 
         .login-input {
@@ -239,63 +248,69 @@
             overflow-y: auto;
             margin-top: 24px;
         }
+
+        .upload-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+
+        .upload-zone:hover {
+            border-color: #12096d;
+            background: #f8faff;
+        }
     </style>
 </head>
 <body>
-    <!-- Define all JavaScript functions FIRST, before HTML -->
     <script>
-        // Global variables
+        // Simple global functions
         var currentUser = null;
         var currentMonthData = [];
         var ytdData = [];
 
-        // Define ALL functions immediately in global scope
-        function loginAs(role, name, employeeId, managedEmployees) {
-            console.log('loginAs called with:', role, name, employeeId);
+        function log(message, type) {
+            var logContainer = document.getElementById('logContainer');
+            if (!logContainer) {
+                console.log(message);
+                return;
+            }
             
+            var timestamp = new Date().toLocaleTimeString();
+            var logEntry = document.createElement('div');
+            logEntry.textContent = '[' + timestamp + '] ' + message;
+            
+            if (type === 'error') logEntry.style.color = '#f56565';
+            if (type === 'success') logEntry.style.color = '#48bb78';
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function loginAs(role, name, employeeId) {
             currentUser = {
                 role: role,
                 name: name,
                 employeeId: employeeId
             };
 
-            var loginScreen = document.getElementById('loginScreen');
-            var mainApp = document.getElementById('mainApp');
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
             
-            if (loginScreen) loginScreen.style.display = 'none';
-            if (mainApp) mainApp.style.display = 'block';
-            
-            var userName = document.getElementById('userName');
-            var userRole = document.getElementById('userRole');
-            
-            if (userName) userName.textContent = name;
-            if (userRole) userRole.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
             
             loadData();
             showPage('currentMonthPage');
             log('Signed in as ' + name, 'success');
         }
 
-        function performLogin() {
-            var username = document.getElementById('loginUsername').value;
-            var password = document.getElementById('loginPassword').value;
-            
-            if (!username || !password) {
-                log('Please enter credentials', 'error');
-                return;
-            }
-            
-            log('Manual login will be enhanced', 'info');
-        }
-
         function logout() {
             currentUser = null;
-            var mainApp = document.getElementById('mainApp');
-            var loginScreen = document.getElementById('loginScreen');
-            
-            if (mainApp) mainApp.style.display = 'none';
-            if (loginScreen) loginScreen.style.display = 'block';
-            
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
             log('Signed out successfully', 'info');
         }
 
@@ -329,33 +344,16 @@
             }
         }
 
-        function log(message, type) {
-            var logContainer = document.getElementById('logContainer');
-            if (!logContainer) return;
-            
-            var timestamp = new Date().toLocaleTimeString();
-            var logEntry = document.createElement('div');
-            logEntry.textContent = '[' + timestamp + '] ' + message;
-            
-            if (type === 'error') logEntry.style.color = '#f56565';
-            if (type === 'success') logEntry.style.color = '#48bb78';
-            
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
         function loadData() {
             currentMonthData = [
                 {employee: 'Pam Henard', client: 'Ajax Building Company, LLC', status: 'New', gp: 336.96, hourlyGP: 6.48, commissionRate: '10.00%', totalCommission: 33.70, month: 'August', day: 3},
                 {employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, commissionRate: '9.75%', totalCommission: 11.49, month: 'August', day: 3},
-                {employee: 'Pam Henard', client: 'MetroNet', status: 'Legacy', gp: 11671.75, hourlyGP: 320.22, commissionRate: '9.75%', totalCommission: 1138.00, month: 'August', day: 3},
-                {employee: 'Pam Henard', client: 'Selective Insurance Group', status: 'New', gp: 437.48, hourlyGP: 12.82, commissionRate: '10.00%', totalCommission: 43.75, month: 'August', day: 3}
+                {employee: 'Pam Henard', client: 'MetroNet', status: 'Legacy', gp: 11671.75, hourlyGP: 320.22, commissionRate: '9.75%', totalCommission: 1138.00, month: 'August', day: 3}
             ];
 
             ytdData = [
                 {employee: 'Pam Henard', month: 'January', directHire: 250, paraHire: '', gp: 23617.80, totalCommission: 1078.51},
                 {employee: 'Pam Henard', month: 'February', directHire: '', paraHire: '', gp: 30500.79, totalCommission: 1458.80},
-                {employee: 'Pam Henard', month: 'March', directHire: '', paraHire: '', gp: 38251.61, totalCommission: 1831.47},
                 {employee: 'Pam Henard', month: 'August', directHire: '', paraHire: '', gp: 68656.66, totalCommission: 6702.69}
             ];
         }
@@ -435,19 +433,21 @@
             tbody.appendChild(totalRow);
         }
 
-        console.log('Functions defined. loginAs type:', typeof loginAs);
+        function processFiles() {
+            log('File processing will be implemented in next version', 'info');
+        }
+
+        function clearFiles() {
+            var fileInput = document.getElementById('commissionFiles');
+            if (fileInput) fileInput.value = '';
+            log('Files cleared', 'info');
+        }
     </script>
 
     <div class="container">
         <div id="loginScreen" class="login-container">
             <h1 class="login-title">Commission Management Portal</h1>
             
-            <div id="authForm" style="margin-bottom: 24px;">
-                <input type="text" id="loginUsername" class="login-input" placeholder="Username" />
-                <input type="password" id="loginPassword" class="login-input" placeholder="Password" />
-                <button class="btn btn-primary" style="width: 100%;" onclick="performLogin()">Sign In</button>
-            </div>
-
             <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
                 <p style="color: #4a5568; margin-bottom: 16px;">Demo Access</p>
                 
@@ -541,19 +541,32 @@
 
             <div id="uploadPage" class="main-content hidden">
                 <h2>Upload Commission Files</h2>
-                <p>File upload functionality will be implemented here.</p>
+                
+                <div style="background: #f8faff; border-left: 4px solid #12096d; padding: 20px; margin: 24px 0; border-radius: 8px;">
+                    <h4>Expected File Format</h4>
+                    <p>Your files should include: Employee Name, Client Name, Sales Status, GP, Month, Day</p>
+                </div>
+
+                <div class="upload-zone">
+                    <h4>Select Commission Files</h4>
+                    <input type="file" id="commissionFiles" accept=".csv,.xlsx" multiple style="margin: 16px 0;" />
+                    <p>Supports CSV and Excel files</p>
+                </div>
+
+                <div style="text-align: center; margin: 24px 0;">
+                    <button class="btn btn-success" onclick="processFiles()">Process Files</button>
+                    <button class="btn btn-secondary" onclick="clearFiles()" style="margin-left: 12px;">Clear</button>
+                </div>
             </div>
         </div>
 
         <div class="activity-log" id="logContainer">
             <div>[SYSTEM] Commission Portal initialized</div>
-            <div>[INFO] Ready for user authentication</div>
         </div>
     </div>
 
     <script>
         log('Commission Portal loaded successfully', 'success');
-        console.log('Final check - loginAs function:', typeof loginAs);
     </script>
 </body>
 </html>

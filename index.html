@@ -492,8 +492,18 @@
                         <div id="fileListDiv" class="hidden">
                             <h4>Selected Files:</h4>
                             <div id="fileList" class="file-list"></div>
-                            <button class="btn btn-success" onclick="processFiles()">Process Files</button>
+                            <button class="btn btn-primary" onclick="previewFiles()">Preview Files</button>
+                            <button class="btn btn-success" onclick="processFiles()" style="margin-left: 10px;">Process Directly</button>
                             <button class="btn btn-danger" onclick="clearFiles()" style="margin-left: 10px;">Clear</button>
+                        </div>
+
+                        <div id="filePreview" class="hidden">
+                            <h4>File Preview</h4>
+                            <div style="margin-bottom: 15px;">
+                                <button class="btn btn-success" onclick="processPreviewedFiles()">Process These Files</button>
+                                <button class="btn btn-danger" onclick="clearPreview()" style="margin-left: 10px;">Clear Preview</button>
+                            </div>
+                            <div id="previewContent" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background: #f8f9fa;"></div>
                         </div>
 
                         <div id="uploadResults" class="hidden alert alert-success">
@@ -517,6 +527,7 @@
         let currentMonthData = [];
         let ytdData = [];
         let placementsData = [];
+        let previewedFiles = []; // Store files for preview
 
         // Sample data
         const initialCurrentMonth = [
@@ -559,6 +570,25 @@
             return 0.07;
         }
 
+        // CSV parser function
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
         // Main functions
         function login(role, name) {
             currentUser = {role, name};
@@ -591,7 +621,18 @@
             
             // Show selected page
             document.getElementById(pageId + 'Page').classList.add('active');
-            event.target.classList.add('active');
+            
+            // Find and activate the clicked nav item
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.textContent.toLowerCase().includes(pageId) || 
+                    (pageId === 'current' && item.textContent.includes('Current')) ||
+                    (pageId === 'ytd' && item.textContent.includes('YTD')) ||
+                    (pageId === 'summary' && item.textContent.includes('Summary')) ||
+                    (pageId === 'placements' && item.textContent.includes('Placements')) ||
+                    (pageId === 'upload' && item.textContent.includes('Upload'))) {
+                    item.classList.add('active');
+                }
+            });
             
             // Update page content
             if (pageId === 'current') updateCurrentMonth();
@@ -748,38 +789,305 @@
             filterPlacements();
         }
 
-        // File upload functions
-        document.getElementById('fileInput').addEventListener('change', function() {
-            const files = this.files;
-            if (files.length > 0) {
-                displayFiles(files);
-            }
-        });
+        function clearFiles() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileListDiv').classList.add('hidden');
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('uploadResults').classList.add('hidden');
+            previewedFiles = [];
+            log('Files cleared', 'info');
+        }
 
-        function displayFiles(files) {
-            const fileList = document.getElementById('fileList');
-            const fileListDiv = document.getElementById('fileListDiv');
+        function clearPreview() {
+            document.getElementById('filePreview').classList.add('hidden');
+            previewedFiles = [];
+            log('Preview cleared', 'info');
+        }
+
+        function previewFiles() {
+            const files = document.getElementById('fileInput').files;
+            if (files.length === 0) return;
             
-            fileList.innerHTML = '';
-            Array.from(files).forEach(file => {
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                item.innerHTML = `
-                    <span>${file.name}</span>
-                    <span>${(file.size / 1024).toFixed(1)} KB</span>
-                `;
-                fileList.appendChild(item);
+            log('Previewing files...', 'info');
+            previewedFiles = [];
+            
+            const previewContent = document.getElementById('previewContent');
+            previewContent.innerHTML = '';
+            
+            let loadedCount = 0;
+            
+            Array.from(files).forEach((file, fileIndex) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        let data;
+                        
+                        if (file.name.endsWith('.csv')) {
+                            data = parseCSV(e.target.result);
+                        } else {
+                            const workbook = XLSX.read(e.target.result, {type: 'binary'});
+                            const sheetName = workbook.SheetNames[0];
+                            data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                        }
+                        
+                        // Store file data for later processing
+                        previewedFiles.push({
+                            name: file.name,
+                            data: data,
+                            originalFile: file
+                        });
+                        
+                        // Create preview section for this file
+                        const fileSection = document.createElement('div');
+                        fileSection.style.marginBottom = '30px';
+                        fileSection.style.border = '1px solid #dee2e6';
+                        fileSection.style.borderRadius = '8px';
+                        fileSection.style.padding = '15px';
+                        fileSection.style.background = 'white';
+                        
+                        const fileHeader = document.createElement('div');
+                        fileHeader.innerHTML = `
+                            <h5 style="margin-bottom: 10px; color: #667eea;">📄 ${file.name}</h5>
+                            <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                                ${data.length} rows • ${Object.keys(data[0] || {}).length} columns • ${(file.size / 1024).toFixed(1)} KB
+                            </p>
+                        `;
+                        fileSection.appendChild(fileHeader);
+                        
+                        if (data.length > 0) {
+                            // Show column headers
+                            const headers = Object.keys(data[0]);
+                            const headerDiv = document.createElement('div');
+                            headerDiv.innerHTML = `<strong>Columns:</strong> ${headers.join(', ')}`;
+                            headerDiv.style.marginBottom = '15px';
+                            headerDiv.style.padding = '10px';
+                            headerDiv.style.background = '#f8f9fa';
+                            headerDiv.style.borderRadius = '4px';
+                            headerDiv.style.fontSize = '12px';
+                            fileSection.appendChild(headerDiv);
+                            
+                            // Create data table
+                            const table = document.createElement('table');
+                            table.className = 'table';
+                            table.style.fontSize = '12px';
+                            table.style.margin = '0';
+                            
+                            // Table header
+                            const thead = document.createElement('thead');
+                            const headerRow = document.createElement('tr');
+                            headers.forEach(header => {
+                                const th = document.createElement('th');
+                                th.textContent = header;
+                                th.style.padding = '8px';
+                                th.style.maxWidth = '150px';
+                                th.style.overflow = 'hidden';
+                                th.style.textOverflow = 'ellipsis';
+                                th.style.whiteSpace = 'nowrap';
+                                headerRow.appendChild(th);
+                            });
+                            thead.appendChild(headerRow);
+                            table.appendChild(thead);
+                            
+                            // Table body - show first 10 rows
+                            const tbody = document.createElement('tbody');
+                            const rowsToShow = Math.min(10, data.length);
+                            
+                            for (let i = 0; i < rowsToShow; i++) {
+                                const row = document.createElement('tr');
+                                headers.forEach(header => {
+                                    const td = document.createElement('td');
+                                    td.textContent = data[i][header] || '';
+                                    td.style.padding = '8px';
+                                    td.style.maxWidth = '150px';
+                                    td.style.overflow = 'hidden';
+                                    td.style.textOverflow = 'ellipsis';
+                                    td.style.whiteSpace = 'nowrap';
+                                    td.title = data[i][header] || ''; // Tooltip for full text
+                                    row.appendChild(td);
+                                });
+                                tbody.appendChild(row);
+                            }
+                            table.appendChild(tbody);
+                            fileSection.appendChild(table);
+                            
+                            if (data.length > 10) {
+                                const moreInfo = document.createElement('div');
+                                moreInfo.innerHTML = `<em style="color: #666; font-size: 12px;">... and ${data.length - 10} more rows</em>`;
+                                moreInfo.style.marginTop = '10px';
+                                moreInfo.style.textAlign = 'center';
+                                fileSection.appendChild(moreInfo);
+                            }
+                            
+                            // Add potential matches info
+                            const matchInfo = document.createElement('div');
+                            matchInfo.style.marginTop = '15px';
+                            matchInfo.style.padding = '10px';
+                            matchInfo.style.background = '#e3f2fd';
+                            matchInfo.style.borderRadius = '4px';
+                            matchInfo.style.fontSize = '12px';
+                            
+                            const potentialMatches = findPotentialMatches(headers);
+                            matchInfo.innerHTML = `
+                                <strong>Detected TOA Fields:</strong><br>
+                                ${potentialMatches.length > 0 ? potentialMatches.join('<br>') : 'No standard TOA fields detected - manual processing may be needed'}
+                            `;
+                            fileSection.appendChild(matchInfo);
+                        } else {
+                            const noDataDiv = document.createElement('div');
+                            noDataDiv.innerHTML = '<em>No data found in this file</em>';
+                            noDataDiv.style.color = '#999';
+                            noDataDiv.style.fontStyle = 'italic';
+                            fileSection.appendChild(noDataDiv);
+                        }
+                        
+                        previewContent.appendChild(fileSection);
+                        
+                        loadedCount++;
+                        if (loadedCount === files.length) {
+                            document.getElementById('filePreview').classList.remove('hidden');
+                            log(`Preview complete: ${files.length} file(s) loaded`, 'success');
+                        }
+                        
+                    } catch (error) {
+                        log(`Error previewing ${file.name}: ${error.message}`, 'error');
+                        loadedCount++;
+                        if (loadedCount === files.length) {
+                            document.getElementById('filePreview').classList.remove('hidden');
+                        }
+                    }
+                };
+                
+                if (file.name.endsWith('.csv')) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsBinaryString(file);
+                }
+            });
+        }
+
+        function findPotentialMatches(headers) {
+            const matches = [];
+            const fieldMappings = {
+                'Client': ['Client', 'Company', 'Client Name'],
+                'Employee/Recruiter': ['Placement Recruiter', 'Recruiter', 'Placement Sales', 'Sales', 'Employee'],
+                'Hours': ['Total Hours', 'Hours', 'Hrs'],
+                'Gross Profit': ['GP', 'Gross Profit', 'Profit'],
+                'Revenue': ['Total Bill', 'Bill', 'Revenue', 'Billing'],
+                'Date': ['WE Date', 'Week Ending', 'Date', 'Week End'],
+                'Status': ['Sales Status', 'Status'],
+                'Name': ['First Name', 'Last Name', 'Name']
+            };
+            
+            for (const [field, possibleHeaders] of Object.entries(fieldMappings)) {
+                for (const header of headers) {
+                    for (const possible of possibleHeaders) {
+                        if (header.toLowerCase().includes(possible.toLowerCase())) {
+                            matches.push(`${field}: "${header}"`);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return matches;
+        }
+
+        function processPreviewedFiles() {
+            if (previewedFiles.length === 0) {
+                log('No files to process', 'error');
+                return;
+            }
+            
+            log('Processing previewed files...', 'info');
+            let totalProcessed = 0;
+            
+            previewedFiles.forEach(fileData => {
+                fileData.data.forEach((row, index) => {
+                    // Extract TOA-specific fields
+                    const weDate = extractValue(row, ['WE Date', 'Week Ending', 'Date']);
+                    const client = extractValue(row, ['Client']);
+                    const salesStatus = extractValue(row, ['Sales Status', 'Status']);
+                    const firstName = extractValue(row, ['First Name']);
+                    const lastName = extractValue(row, ['Last Name']);
+                    const totalHours = extractValue(row, ['Total Hours', 'Hours']);
+                    const totalBill = extractValue(row, ['Total Bill', 'Bill']);
+                    const gp = extractValue(row, ['GP', 'Gross Profit']);
+                    const placementRecruiter = extractValue(row, ['Placement Recruiter (text)', 'Recruiter']);
+                    const placementSales = extractValue(row, ['Placement Sales (text)', 'Sales']);
+                    
+                    // Parse numeric values
+                    const hours = parseFloat(String(totalHours || '0').replace(/[,$\s]/g, '')) || 0;
+                    const grossProfit = parseFloat(String(gp || '0').replace(/[,$\s]/g, '')) || 0;
+                    const revenue = parseFloat(String(totalBill || '0').replace(/[,$\s]/g, '')) || 0;
+                    
+                    // Determine employee name (recruiter takes priority, then sales, then candidate name)
+                    let employee = placementRecruiter || placementSales;
+                    if (!employee && firstName && lastName) {
+                        employee = `${firstName} ${lastName}`;
+                    }
+                    
+                    // Only process if we have minimum required data
+                    if (grossProfit > 0 && hours > 0 && employee && client) {
+                        const hourlyGP = grossProfit / hours;
+                        const rate = calculateCommissionRate(hourlyGP);
+                        const commission = grossProfit * rate;
+                        
+                        // Add to current month data
+                        currentMonthData.push({
+                            employee: employee,
+                            client: client,
+                            status: salesStatus || 'New',
+                            gp: grossProfit,
+                            hourlyGP: hourlyGP,
+                            rate: (rate * 100).toFixed(2) + '%',
+                            commission: commission,
+                            month: 'August',
+                            day: weDate ? new Date(weDate).getDate() : new Date().getDate()
+                        });
+                        
+                        // Add to placements data
+                        placementsData.push({
+                            id: `PL${String(placementsData.length + 1).padStart(3, '0')}`,
+                            date: weDate || '2025-08-' + String(new Date().getDate()).padStart(2, '0'),
+                            employee: employee,
+                            client: client,
+                            hours: hours,
+                            revenue: revenue || Math.round(grossProfit * 1.5),
+                            gp: grossProfit,
+                            commission: commission,
+                            status: 'Active'
+                        });
+                        
+                        totalProcessed++;
+                    }
+                });
             });
             
-            fileListDiv.classList.remove('hidden');
-            log(`Selected ${files.length} file(s)`, 'info');
+            showUploadResults(totalProcessed);
+            clearPreview();
+        }
+
+        function extractValue(row, possibleKeys) {
+            for (let key of possibleKeys) {
+                // Check exact match first
+                if (row[key] !== undefined && row[key] !== '') return row[key];
+                
+                // Check case-insensitive partial match
+                for (let rowKey in row) {
+                    if (rowKey.toLowerCase().includes(key.toLowerCase())) {
+                        return row[rowKey];
+                    }
+                }
+            }
+            return null;
         }
 
         function processFiles() {
             const files = document.getElementById('fileInput').files;
             if (files.length === 0) return;
             
-            log('Processing files...', 'info');
+            log('Processing TOA files...', 'info');
             let processedCount = 0;
             let totalProcessed = 0;
             
@@ -798,44 +1106,83 @@
                             data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
                         }
                         
-                        data.forEach(row => {
-                            const gp = parseFloat(row.GP || row['Gross Profit'] || 0);
-                            const hours = parseFloat(row.Hours || 40);
-                            const employee = row.Employee || row.Name || 'Unknown';
-                            const client = row.Client || row.Company || 'Unknown';
+                        log(`Parsed ${data.length} rows from ${file.name}`, 'info');
+                        
+                        data.forEach((row, index) => {
+                            // Extract TOA-specific fields
+                            const weDate = extractValue(row, ['WE Date', 'Week Ending', 'Date']);
+                            const client = extractValue(row, ['Client']);
+                            const salesStatus = extractValue(row, ['Sales Status', 'Status']);
+                            const firstName = extractValue(row, ['First Name']);
+                            const lastName = extractValue(row, ['Last Name']);
+                            const totalHours = extractValue(row, ['Total Hours', 'Hours']);
+                            const totalBill = extractValue(row, ['Total Bill', 'Bill']);
+                            const gp = extractValue(row, ['GP', 'Gross Profit']);
+                            const placementRecruiter = extractValue(row, ['Placement Recruiter (text)', 'Recruiter']);
+                            const placementSales = extractValue(row, ['Placement Sales (text)', 'Sales']);
                             
-                            if (gp > 0 && employee !== 'Unknown') {
-                                const hourlyGP = gp / hours;
+                            // Parse numeric values
+                            const hours = parseFloat(String(totalHours || '0').replace(/[,$\s]/g, '')) || 0;
+                            const grossProfit = parseFloat(String(gp || '0').replace(/[,$\s]/g, '')) || 0;
+                            const revenue = parseFloat(String(totalBill || '0').replace(/[,$\s]/g, '')) || 0;
+                            
+                            // Determine employee name (recruiter takes priority, then sales, then candidate name)
+                            let employee = placementRecruiter || placementSales;
+                            if (!employee && firstName && lastName) {
+                                employee = `${firstName} ${lastName}`;
+                            }
+                            
+                            // Only process if we have minimum required data
+                            if (grossProfit > 0 && hours > 0 && employee && client) {
+                                const hourlyGP = grossProfit / hours;
                                 const rate = calculateCommissionRate(hourlyGP);
-                                const commission = gp * rate;
+                                const commission = grossProfit * rate;
+                                
+                                log(`Processing: ${employee}, ${client}, GP: ${grossProfit}, Hours: ${hours}`, 'info');
                                 
                                 // Add to current month data
                                 currentMonthData.push({
                                     employee: employee,
                                     client: client,
-                                    status: 'New',
-                                    gp: gp,
+                                    status: salesStatus || 'New',
+                                    gp: grossProfit,
                                     hourlyGP: hourlyGP,
                                     rate: (rate * 100).toFixed(2) + '%',
                                     commission: commission,
                                     month: 'August',
-                                    day: new Date().getDate()
+                                    day: weDate ? new Date(weDate).getDate() : new Date().getDate()
                                 });
                                 
                                 // Add to placements data
                                 placementsData.push({
                                     id: `PL${String(placementsData.length + 1).padStart(3, '0')}`,
-                                    date: '2025-08-' + String(new Date().getDate()).padStart(2, '0'),
+                                    date: weDate || '2025-08-' + String(new Date().getDate()).padStart(2, '0'),
                                     employee: employee,
                                     client: client,
                                     hours: hours,
-                                    revenue: Math.round(gp * 1.5),
-                                    gp: gp,
+                                    revenue: revenue || Math.round(grossProfit * 1.5),
+                                    gp: grossProfit,
                                     commission: commission,
                                     status: 'Active'
                                 });
                                 
                                 totalProcessed++;
+                            } else {
+                                if (index === 0) {
+                                    log(`Available columns: ${Object.keys(row).join(', ')}`, 'info');
+                                }
+                                if (!employee) {
+                                    log(`Row ${index + 1}: No employee found (Recruiter: ${placementRecruiter}, Sales: ${placementSales}, Name: ${firstName} ${lastName})`, 'info');
+                                }
+                                if (!client) {
+                                    log(`Row ${index + 1}: Missing client`, 'info');
+                                }
+                                if (grossProfit <= 0) {
+                                    log(`Row ${index + 1}: Invalid GP: ${gp}`, 'info');
+                                }
+                                if (hours <= 0) {
+                                    log(`Row ${index + 1}: Invalid hours: ${totalHours}`, 'info');
+                                }
                             }
                         });
                         
@@ -861,70 +1208,85 @@
             });
         }
 
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
-            const data = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim()) {
-                    const values = lines[i].split(',').map(v => v.trim());
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index] || '';
-                    });
-                    data.push(row);
-                }
-            }
-            
-            return data;
-        }
-
         function showUploadResults(count) {
             const resultsEl = document.getElementById('uploadResults');
             const resultsText = document.getElementById('resultsText');
             
-            resultsText.innerHTML = `
-                <p><strong>Successfully processed ${count} records!</strong></p>
-                <p>New commission entries have been added to your current month data.</p>
-            `;
+            if (count > 0) {
+                resultsText.innerHTML = `
+                    <p><strong>Successfully processed ${count} TOA records!</strong></p>
+                    <p>New commission entries have been added to your current month data.</p>
+                    <p>Commission rates applied based on hourly GP tiers (3%-7%).</p>
+                `;
+            } else {
+                resultsText.innerHTML = `
+                    <p><strong>No valid records found!</strong></p>
+                    <p>Make sure your file contains: Client, GP, Total Hours, and either Placement Recruiter or Placement Sales columns.</p>
+                    <p>Check the log below for detailed parsing information.</p>
+                `;
+            }
             
             resultsEl.classList.remove('hidden');
-            updateCurrentMonth(); // Refresh the current month view
-            log(`Upload complete: ${count} records processed`, 'success');
+            if (count > 0) {
+                updateCurrentMonth(); // Refresh the current month view
+            }
+            log(`Upload complete: ${count} TOA records processed`, count > 0 ? 'success' : 'error');
         }
 
-        function clearFiles() {
-            document.getElementById('fileInput').value = '';
-            document.getElementById('fileListDiv').classList.add('hidden');
-            document.getElementById('uploadResults').classList.add('hidden');
-            log('Files cleared', 'info');
-        }
-
-        // Drag and drop functionality
-        const uploadZone = document.querySelector('.upload-zone');
-        
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-        
-        uploadZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-        });
-        
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
+        function displayFiles(files) {
+            const fileList = document.getElementById('fileList');
+            const fileListDiv = document.getElementById('fileListDiv');
             
-            const files = e.dataTransfer.files;
-            document.getElementById('fileInput').files = files;
-            displayFiles(files);
-        });
+            fileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span>${file.name}</span>
+                    <span>${(file.size / 1024).toFixed(1)} KB</span>
+                `;
+                fileList.appendChild(item);
+            });
+            
+            fileListDiv.classList.remove('hidden');
+            log(`Selected ${files.length} file(s)`, 'info');
+        }
 
-        // Initialize
-        log('Commission Portal loaded successfully', 'success');
+        // File input event listener and initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('fileInput').addEventListener('change', function() {
+                const files = this.files;
+                if (files.length > 0) {
+                    displayFiles(files);
+                }
+            });
+            
+            // Drag and drop functionality
+            const uploadZone = document.querySelector('.upload-zone');
+            
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            
+            uploadZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+            });
+            
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                document.getElementById('fileInput').files = files;
+                displayFiles(files);
+            });
+            
+            // Initialize
+            log('Commission Portal loaded successfully', 'success');
+        });
     </script>
 </body>
 </html>
+

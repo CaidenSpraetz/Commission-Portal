@@ -432,11 +432,17 @@
                                 <option value="2025-07">July 2025</option>
                                 <option value="2025-06">June 2025</option>
                             </select>
+                            <select id="employeeSelector" style="padding: 8px; border: 1px solid #dee2e6; border-radius: 4px; margin-left: 10px;">
+                                <option value="all">All Employees</option>
+                            </select>
                             <button class="btn btn-primary" onclick="updateSummary()" style="margin-left: 10px;">Update</button>
                         </div>
 
                         <div id="summaryStats" class="stats-grid"></div>
                         <div id="summaryDetails"></div>
+                        
+                        <!-- Individual Employee Performance -->
+                        <div id="employeeBreakdown" style="margin-top: 30px;"></div>
                     </div>
 
                     <!-- All Placements Page -->
@@ -655,7 +661,33 @@
                 placementsData = placementsData.filter(item => item.employee === currentUser.name);
             }
             
+            // Populate employee selector
+            populateEmployeeSelector();
+            
             updateCurrentMonth();
+        }
+
+        function populateEmployeeSelector() {
+            const selector = document.getElementById('employeeSelector');
+            if (!selector) return;
+            
+            // Get unique employees from all data sources
+            const employees = new Set();
+            
+            currentMonthData.forEach(item => employees.add(item.employee));
+            ytdData.forEach(item => employees.add(item.employee));
+            placementsData.forEach(item => employees.add(item.employee));
+            
+            // Clear existing options except "All Employees"
+            selector.innerHTML = '<option value="all">All Employees</option>';
+            
+            // Add employee options
+            Array.from(employees).sort().forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee;
+                option.textContent = employee;
+                selector.appendChild(option);
+            });
         }
 
         function updateCurrentMonth() {
@@ -719,25 +751,35 @@
         }
 
         function updateSummary() {
+            const selectedMonth = document.getElementById('monthSelector').value;
+            const selectedEmployee = document.getElementById('employeeSelector').value;
             const statsEl = document.getElementById('summaryStats');
             const detailsEl = document.getElementById('summaryDetails');
+            const breakdownEl = document.getElementById('employeeBreakdown');
             
-            const totalPlacements = currentMonthData.length;
-            const totalGP = currentMonthData.reduce((sum, item) => sum + item.gp, 0);
-            const totalCommission = currentMonthData.reduce((sum, item) => sum + item.commission, 0);
+            // Filter data based on selections
+            let filteredData = [...currentMonthData];
+            if (selectedEmployee !== 'all') {
+                filteredData = filteredData.filter(item => item.employee === selectedEmployee);
+            }
+            
+            const totalPlacements = filteredData.length;
+            const totalGP = filteredData.reduce((sum, item) => sum + item.gp, 0);
+            const totalCommission = filteredData.reduce((sum, item) => sum + item.commission, 0);
             const avgRate = totalGP > 0 ? (totalCommission / totalGP * 100).toFixed(1) : 0;
             
+            // Update stats cards
             statsEl.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-value">${totalPlacements}</div>
                     <div class="stat-label">Total Placements</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">$${totalGP.toLocaleString()}</div>
+                    <div class="stat-value">${totalGP.toLocaleString()}</div>
                     <div class="stat-label">Total GP</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">$${totalCommission.toLocaleString()}</div>
+                    <div class="stat-value">${totalCommission.toLocaleString()}</div>
                     <div class="stat-label">Total Commission</div>
                 </div>
                 <div class="stat-card">
@@ -746,12 +788,158 @@
                 </div>
             `;
             
+            // Update summary details
+            const employeeName = selectedEmployee === 'all' ? 'All employees' : selectedEmployee;
             detailsEl.innerHTML = `
                 <div class="alert alert-info">
                     <h4>August 2025 Performance Summary</h4>
-                    <p>Pam Henard completed ${totalPlacements} placements with an average commission rate of ${avgRate}%.</p>
+                    <p>${employeeName} completed ${totalPlacements} placements with an average commission rate of ${avgRate}%.</p>
                 </div>
             `;
+            
+            // Create employee breakdown
+            if (selectedEmployee === 'all') {
+                createEmployeeBreakdown(breakdownEl);
+            } else {
+                createIndividualBreakdown(breakdownEl, selectedEmployee, filteredData);
+            }
+        }
+
+        function createEmployeeBreakdown(container) {
+            // Group data by employee
+            const employeeData = {};
+            currentMonthData.forEach(item => {
+                if (!employeeData[item.employee]) {
+                    employeeData[item.employee] = {
+                        placements: 0,
+                        totalGP: 0,
+                        totalCommission: 0,
+                        clients: new Set()
+                    };
+                }
+                employeeData[item.employee].placements++;
+                employeeData[item.employee].totalGP += item.gp;
+                employeeData[item.employee].totalCommission += item.commission;
+                employeeData[item.employee].clients.add(item.client);
+            });
+            
+            container.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #667eea;">Employee Performance Breakdown</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Placements</th>
+                            <th>Unique Clients</th>
+                            <th>Total GP</th>
+                            <th>Total Commission</th>
+                            <th>Avg Rate</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(employeeData).map(([employee, data]) => {
+                            const avgRate = data.totalGP > 0 ? (data.totalCommission / data.totalGP * 100).toFixed(1) : 0;
+                            return `
+                                <tr>
+                                    <td><strong>${employee}</strong></td>
+                                    <td>${data.placements}</td>
+                                    <td>${data.clients.size}</td>
+                                    <td>${data.totalGP.toFixed(2)}</td>
+                                    <td>${data.totalCommission.toFixed(2)}</td>
+                                    <td>${avgRate}%</td>
+                                    <td>
+                                        <button class="btn btn-primary" onclick="selectEmployee('${employee}')" style="padding: 4px 8px; font-size: 12px;">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function createIndividualBreakdown(container, employee, data) {
+            // Group by client for this employee
+            const clientData = {};
+            data.forEach(item => {
+                if (!clientData[item.client]) {
+                    clientData[item.client] = {
+                        placements: 0,
+                        totalGP: 0,
+                        totalCommission: 0,
+                        avgRate: 0
+                    };
+                }
+                clientData[item.client].placements++;
+                clientData[item.client].totalGP += item.gp;
+                clientData[item.client].totalCommission += item.commission;
+            });
+            
+            // Calculate average rates
+            Object.values(clientData).forEach(client => {
+                client.avgRate = client.totalGP > 0 ? (client.totalCommission / client.totalGP * 100).toFixed(1) : 0;
+            });
+            
+            container.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #667eea;">${employee} - Client Breakdown</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-primary" onclick="selectEmployee('all')" style="padding: 6px 12px; font-size: 14px;">
+                        ← Back to All Employees
+                    </button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Placements</th>
+                            <th>Total GP</th>
+                            <th>Total Commission</th>
+                            <th>Avg Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(clientData).map(([client, data]) => `
+                            <tr>
+                                <td><strong>${client}</strong></td>
+                                <td>${data.placements}</td>
+                                <td>${data.totalGP.toFixed(2)}</td>
+                                <td>${data.totalCommission.toFixed(2)}</td>
+                                <td>${data.avgRate}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <h4 style="margin-bottom: 10px;">Performance Insights</h4>
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${Object.keys(clientData).length}</div>
+                            <div style="font-size: 12px; color: #666;">Active Clients</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${(data.reduce((sum, item) => sum + item.gp, 0) / data.length).toFixed(0)}</div>
+                            <div style="font-size: 12px; color: #666;">Avg GP per Placement</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${Math.max(...Object.values(clientData).map(c => c.placements))}</div>
+                            <div style="font-size: 12px; color: #666;">Max Placements (1 Client)</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${Math.max(...Object.values(clientData).map(c => parseFloat(c.avgRate))).toFixed(1)}%</div>
+                            <div style="font-size: 12px; color: #666;">Highest Client Rate</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectEmployee(employee) {
+            document.getElementById('employeeSelector').value = employee;
+            updateSummary();
         }
 
         function updatePlacements() {
@@ -1068,6 +1256,11 @@
             clearPreview();
         }
 
+        // Update employee selector when new files are processed
+        function updateEmployeeSelectorAfterUpload() {
+            populateEmployeeSelector();
+        }
+
         function extractValue(row, possibleKeys) {
             for (let key of possibleKeys) {
                 // Check exact match first
@@ -1289,4 +1482,5 @@
     </script>
 </body>
 </html>
+
 

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Commission Management Portal</title>
+    <title>Commission Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,560 +13,917 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #2d3748;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
 
-        .login-container {
+        .card {
             background: white;
             border-radius: 12px;
-            padding: 48px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            max-width: 480px;
-            margin: 10vh auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .login-card {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 40px;
             text-align: center;
         }
 
-        .login-title {
+        .logo {
             font-size: 28px;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 30px;
         }
 
-        .header {
-            background: white;
-            border-radius: 12px;
-            padding: 20px 32px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-logo {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1a202c;
-        }
-
-        .nav-menu {
-            background: white;
-            border-radius: 12px;
-            padding: 8px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-
-        .nav-item {
-            flex: 1;
-            min-width: 150px;
-            padding: 12px 20px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-            color: #4a5568;
-            border: none;
-            background: none;
-            font-size: 14px;
-        }
-
-        .nav-item.active {
-            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
-            color: white;
-        }
-
-        .nav-item:hover:not(.active) {
-            background: #f8faff;
-            color: #12096d;
-        }
-
-        .main-content {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 500;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: #48bb78;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #f56565;
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #edf2f7;
-            color: #4a5568;
-        }
-
-        .login-input {
+        .role-btn {
             width: 100%;
-            padding: 14px 16px;
-            border: 1px solid #e2e8f0;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e1e5e9;
             border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-
-        .role-option {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
+            background: white;
             cursor: pointer;
-            margin-bottom: 12px;
             transition: all 0.2s;
+            text-align: left;
         }
 
-        .role-option:hover {
-            border-color: #12096d;
-            background: #f8faff;
+        .role-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
         }
 
         .role-title {
             font-weight: 600;
-            color: #1a202c;
+            margin-bottom: 4px;
         }
 
-        .role-description {
+        .role-desc {
             font-size: 14px;
-            color: #4a5568;
+            color: #666;
         }
 
-        .role-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-        }
-
-        .role-admin { background: #fed7d7; color: #c53030; }
-        .role-manager { background: #c6f6d5; color: #276749; }
-        .role-user { background: #bee3f8; color: #2c5282; }
-
-        .commission-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 24px;
+        .header {
             background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 20px 30px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .commission-table th {
-            background: #f7fafc;
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            color: #2d3748;
-            border-bottom: 2px solid #e2e8f0;
-            font-size: 14px;
+        .nav {
+            background: white;
+            padding: 0 30px;
+            border-bottom: 1px solid #e1e5e9;
         }
 
-        .commission-table td {
-            padding: 10px 16px;
-            border-bottom: 1px solid #e2e8f0;
-            color: #4a5568;
-            font-size: 14px;
+        .nav-list {
+            display: flex;
+            list-style: none;
         }
 
-        .commission-table tbody tr:hover {
-            background: #f8faff;
-        }
-
-        .commission-table tbody tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-
-        .total-row {
-            background: #e6f3ff !important;
-            font-weight: 700;
-            color: #1a202c;
-        }
-
-        .month-header {
-            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            text-align: center;
-        }
-
-        .hidden { 
-            display: none; 
-        }
-
-        .activity-log {
-            background: #2d3748;
-            color: #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
-            font-family: monospace;
-            font-size: 13px;
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 24px;
-        }
-
-        .upload-zone {
-            border: 2px dashed #cbd5e0;
-            border-radius: 12px;
-            padding: 32px;
-            text-align: center;
-            margin-bottom: 24px;
+        .nav-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
             transition: all 0.2s;
         }
 
+        .nav-item:hover {
+            background: #f8f9ff;
+        }
+
+        .nav-item.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .table .total-row {
+            background: #e3f2fd;
+            font-weight: bold;
+        }
+
+        .month-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .upload-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
         .upload-zone:hover {
-            border-color: #12096d;
-            background: #f8faff;
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-zone.dragover {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .file-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .file-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #99d6ff;
+        }
+
+        .commission-rules {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .commission-rules h4 {
+            margin-bottom: 10px;
+            color: #1976d2;
+        }
+
+        .commission-rules ul {
+            margin-left: 20px;
+        }
+
+        .commission-rules li {
+            margin: 5px 0;
+        }
+
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-list {
+                flex-wrap: wrap;
+            }
+            
+            .nav-item {
+                flex: 1;
+                text-align: center;
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <script>
-        // Simple global functions
-        var currentUser = null;
-        var currentMonthData = [];
-        var ytdData = [];
-
-        function log(message, type) {
-            var logContainer = document.getElementById('logContainer');
-            if (!logContainer) {
-                console.log(message);
-                return;
-            }
-            
-            var timestamp = new Date().toLocaleTimeString();
-            var logEntry = document.createElement('div');
-            logEntry.textContent = '[' + timestamp + '] ' + message;
-            
-            if (type === 'error') logEntry.style.color = '#f56565';
-            if (type === 'success') logEntry.style.color = '#48bb78';
-            
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        function loginAs(role, name, employeeId) {
-            currentUser = {
-                role: role,
-                name: name,
-                employeeId: employeeId
-            };
-
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            
-            document.getElementById('userName').textContent = name;
-            document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-            
-            loadData();
-            showPage('currentMonthPage');
-            log('Signed in as ' + name, 'success');
-        }
-
-        function logout() {
-            currentUser = null;
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('loginScreen').style.display = 'block';
-            log('Signed out successfully', 'info');
-        }
-
-        function showPage(pageId) {
-            var pages = ['currentMonthPage', 'ytdCommissionPage', 'uploadPage'];
-            
-            for (var i = 0; i < pages.length; i++) {
-                var page = document.getElementById(pages[i]);
-                if (page) {
-                    if (pages[i] === pageId) {
-                        page.classList.remove('hidden');
-                    } else {
-                        page.classList.add('hidden');
-                    }
-                }
-            }
-            
-            var navItems = document.querySelectorAll('.nav-item');
-            for (var i = 0; i < navItems.length; i++) {
-                navItems[i].classList.remove('active');
-            }
-            
-            if (pageId === 'currentMonthPage') {
-                if (navItems[0]) navItems[0].classList.add('active');
-                updateCurrentMonthTable();
-            } else if (pageId === 'ytdCommissionPage') {
-                if (navItems[1]) navItems[1].classList.add('active');
-                updateYTDTable();
-            } else if (pageId === 'uploadPage') {
-                if (navItems[2]) navItems[2].classList.add('active');
-            }
-        }
-
-        function loadData() {
-            currentMonthData = [
-                {employee: 'Pam Henard', client: 'Ajax Building Company, LLC', status: 'New', gp: 336.96, hourlyGP: 6.48, commissionRate: '10.00%', totalCommission: 33.70, month: 'August', day: 3},
-                {employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, commissionRate: '9.75%', totalCommission: 11.49, month: 'August', day: 3},
-                {employee: 'Pam Henard', client: 'MetroNet', status: 'Legacy', gp: 11671.75, hourlyGP: 320.22, commissionRate: '9.75%', totalCommission: 1138.00, month: 'August', day: 3}
-            ];
-
-            ytdData = [
-                {employee: 'Pam Henard', month: 'January', directHire: 250, paraHire: '', gp: 23617.80, totalCommission: 1078.51},
-                {employee: 'Pam Henard', month: 'February', directHire: '', paraHire: '', gp: 30500.79, totalCommission: 1458.80},
-                {employee: 'Pam Henard', month: 'August', directHire: '', paraHire: '', gp: 68656.66, totalCommission: 6702.69}
-            ];
-        }
-
-        function updateCurrentMonthTable() {
-            var tbody = document.getElementById('currentMonthTableBody');
-            if (!tbody) return;
-            
-            tbody.innerHTML = '';
-            var totalGP = 0;
-            var totalCommission = 0;
-
-            for (var i = 0; i < currentMonthData.length; i++) {
-                var record = currentMonthData[i];
-                var row = document.createElement('tr');
-                
-                row.innerHTML = 
-                    '<td>' + record.employee + '</td>' +
-                    '<td>' + record.client + '</td>' +
-                    '<td>' + record.status + '</td>' +
-                    '<td>' + record.gp.toFixed(2) + '</td>' +
-                    '<td>' + record.hourlyGP.toFixed(2) + '</td>' +
-                    '<td>' + record.commissionRate + '</td>' +
-                    '<td>' + record.totalCommission.toFixed(2) + '</td>' +
-                    '<td>' + record.month + '</td>' +
-                    '<td>' + record.day + '</td>';
-                
-                tbody.appendChild(row);
-                totalGP += record.gp;
-                totalCommission += record.totalCommission;
-            }
-
-            var totalRow = document.createElement('tr');
-            totalRow.className = 'total-row';
-            totalRow.innerHTML = 
-                '<td><strong>Total</strong></td>' +
-                '<td></td><td></td>' +
-                '<td><strong>' + totalGP.toFixed(2) + '</strong></td>' +
-                '<td></td><td></td>' +
-                '<td><strong>' + totalCommission.toFixed(2) + '</strong></td>' +
-                '<td></td><td></td>';
-            tbody.appendChild(totalRow);
-        }
-
-        function updateYTDTable() {
-            var tbody = document.getElementById('ytdTableBody');
-            if (!tbody) return;
-            
-            tbody.innerHTML = '';
-            var totalGP = 0;
-            var totalCommission = 0;
-
-            for (var i = 0; i < ytdData.length; i++) {
-                var record = ytdData[i];
-                var row = document.createElement('tr');
-                
-                row.innerHTML = 
-                    '<td>' + record.employee + '</td>' +
-                    '<td>' + record.month + '</td>' +
-                    '<td>' + (record.directHire ? '$' + record.directHire : '') + '</td>' +
-                    '<td>' + record.paraHire + '</td>' +
-                    '<td>' + record.gp.toLocaleString() + '</td>' +
-                    '<td>' + record.totalCommission.toLocaleString() + '</td>';
-                
-                tbody.appendChild(row);
-                totalGP += record.gp;
-                totalCommission += record.totalCommission;
-            }
-
-            var totalRow = document.createElement('tr');
-            totalRow.className = 'total-row';
-            totalRow.innerHTML = 
-                '<td><strong>Total</strong></td><td></td>' +
-                '<td><strong>$250</strong></td><td></td>' +
-                '<td><strong>' + totalGP.toLocaleString() + '</strong></td>' +
-                '<td><strong>' + totalCommission.toLocaleString() + '</strong></td>';
-            tbody.appendChild(totalRow);
-        }
-
-        function processFiles() {
-            log('File processing will be implemented in next version', 'info');
-        }
-
-        function clearFiles() {
-            var fileInput = document.getElementById('commissionFiles');
-            if (fileInput) fileInput.value = '';
-            log('Files cleared', 'info');
-        }
-    </script>
-
     <div class="container">
-        <div id="loginScreen" class="login-container">
-            <h1 class="login-title">Commission Management Portal</h1>
-            
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
-                <p style="color: #4a5568; margin-bottom: 16px;">Demo Access</p>
+        <!-- Login Screen -->
+        <div id="loginScreen">
+            <div class="card login-card">
+                <div class="logo">Commission Portal</div>
                 
-                <div class="role-option" onclick="loginAs('admin', 'Administrator', 'ADMIN001')">
-                    <div>
-                        <div class="role-title">Administrator</div>
-                        <div class="role-description">Full system access</div>
-                    </div>
-                    <div class="role-badge role-admin">Admin</div>
-                </div>
+                <button class="role-btn" onclick="login('admin', 'Administrator')">
+                    <div class="role-title">Administrator</div>
+                    <div class="role-desc">Full system access</div>
+                </button>
                 
-                <div class="role-option" onclick="loginAs('manager', 'Sales Manager', 'MGR001')">
-                    <div>
-                        <div class="role-title">Manager</div>
-                        <div class="role-description">Team oversight</div>
-                    </div>
-                    <div class="role-badge role-manager">Manager</div>
-                </div>
+                <button class="role-btn" onclick="login('manager', 'Sales Manager')">
+                    <div class="role-title">Manager</div>
+                    <div class="role-desc">Team management and uploads</div>
+                </button>
                 
-                <div class="role-option" onclick="loginAs('user', 'Pam Henard', 'REC001')">
-                    <div>
-                        <div class="role-title">Employee</div>
-                        <div class="role-description">Personal data access</div>
-                    </div>
-                    <div class="role-badge role-user">Employee</div>
-                </div>
+                <button class="role-btn" onclick="login('employee', 'Pam Henard')">
+                    <div class="role-title">Employee</div>
+                    <div class="role-desc">View personal commission data</div>
+                </button>
             </div>
         </div>
 
+        <!-- Main App -->
         <div id="mainApp" class="hidden">
-            <div class="header">
-                <div class="header-logo">Commission Portal</div>
-                <div>
-                    <span id="userName">User Name</span> | 
-                    <span id="userRole">Role</span>
-                    <button class="btn btn-danger" style="margin-left: 16px;" onclick="logout()">Sign Out</button>
-                </div>
-            </div>
-
-            <div class="nav-menu">
-                <button class="nav-item active" onclick="showPage('currentMonthPage')">Current Month</button>
-                <button class="nav-item" onclick="showPage('ytdCommissionPage')">YTD Commission</button>
-                <button class="nav-item" onclick="showPage('uploadPage')">Upload Files</button>
-            </div>
-
-            <div id="currentMonthPage" class="main-content">
-                <div class="month-header">
-                    <h2>Current Month Contract Commission Details</h2>
-                    <p>August 2025</p>
+            <div class="card">
+                <div class="header">
+                    <div>
+                        <div class="logo">Commission Portal</div>
+                    </div>
+                    <div>
+                        <span id="userName">User</span> | <span id="userRole">Role</span>
+                        <button class="btn btn-danger" onclick="logout()" style="margin-left: 15px;">Sign Out</button>
+                    </div>
                 </div>
 
-                <table class="commission-table">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Client</th>
-                            <th>Sales Status</th>
-                            <th>GP</th>
-                            <th>Hourly GP</th>
-                            <th>Commission Rate</th>
-                            <th>Total Commission</th>
-                            <th>Month</th>
-                            <th>Day</th>
-                        </tr>
-                    </thead>
-                    <tbody id="currentMonthTableBody">
-                    </tbody>
-                </table>
-            </div>
+                <nav class="nav">
+                    <ul class="nav-list">
+                        <li class="nav-item active" onclick="showPage('current')">Current Month</li>
+                        <li class="nav-item" onclick="showPage('ytd')">YTD Commission</li>
+                        <li class="nav-item" onclick="showPage('summary')">Monthly Summary</li>
+                        <li class="nav-item" onclick="showPage('placements')">All Placements</li>
+                        <li class="nav-item hidden" id="uploadNav" onclick="showPage('upload')">Upload Files</li>
+                    </ul>
+                </nav>
 
-            <div id="ytdCommissionPage" class="main-content hidden">
-                <div class="month-header">
-                    <h2>2025 YTD Commission</h2>
-                </div>
+                <div class="content">
+                    <!-- Current Month Page -->
+                    <div id="currentPage" class="page active">
+                        <div class="month-header">
+                            <h2>Current Month Contract Commission Details</h2>
+                            <p>August 2025</p>
+                        </div>
 
-                <table class="commission-table">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Month</th>
-                            <th>DirectHire Revenue</th>
-                            <th>ParaHire Revenue</th>
-                            <th>GP</th>
-                            <th>Total Commission</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ytdTableBody">
-                    </tbody>
-                </table>
-            </div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Client</th>
+                                    <th>Sales Status</th>
+                                    <th>GP</th>
+                                    <th>Hourly GP</th>
+                                    <th>Commission Rate</th>
+                                    <th>Total Commission</th>
+                                    <th>Month</th>
+                                    <th>Day</th>
+                                </tr>
+                            </thead>
+                            <tbody id="currentTable"></tbody>
+                        </table>
+                    </div>
 
-            <div id="uploadPage" class="main-content hidden">
-                <h2>Upload Commission Files</h2>
-                
-                <div style="background: #f8faff; border-left: 4px solid #12096d; padding: 20px; margin: 24px 0; border-radius: 8px;">
-                    <h4>Expected File Format</h4>
-                    <p>Your files should include: Employee Name, Client Name, Sales Status, GP, Month, Day</p>
-                </div>
+                    <!-- YTD Commission Page -->
+                    <div id="ytdPage" class="page">
+                        <div class="month-header">
+                            <h2>2025 YTD Commission</h2>
+                        </div>
 
-                <div class="upload-zone">
-                    <h4>Select Commission Files</h4>
-                    <input type="file" id="commissionFiles" accept=".csv,.xlsx" multiple style="margin: 16px 0;" />
-                    <p>Supports CSV and Excel files</p>
-                </div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Month</th>
+                                    <th>DirectHire Revenue</th>
+                                    <th>ParaHire Revenue</th>
+                                    <th>GP</th>
+                                    <th>Total Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ytdTable"></tbody>
+                        </table>
+                    </div>
 
-                <div style="text-align: center; margin: 24px 0;">
-                    <button class="btn btn-success" onclick="processFiles()">Process Files</button>
-                    <button class="btn btn-secondary" onclick="clearFiles()" style="margin-left: 12px;">Clear</button>
+                    <!-- Monthly Summary Page -->
+                    <div id="summaryPage" class="page">
+                        <h2 style="margin-bottom: 20px;">Monthly Summary</h2>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <select id="monthSelector" style="padding: 8px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                <option value="2025-08">August 2025</option>
+                                <option value="2025-07">July 2025</option>
+                                <option value="2025-06">June 2025</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="updateSummary()" style="margin-left: 10px;">Update</button>
+                        </div>
+
+                        <div id="summaryStats" class="stats-grid"></div>
+                        <div id="summaryDetails"></div>
+                    </div>
+
+                    <!-- All Placements Page -->
+                    <div id="placementsPage" class="page">
+                        <h2 style="margin-bottom: 20px;">All Placements</h2>
+                        
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <input type="text" placeholder="Search..." id="searchInput" style="padding: 8px; border: 1px solid #dee2e6; border-radius: 4px; margin-right: 10px;">
+                            <button class="btn btn-primary" onclick="filterPlacements()">Search</button>
+                            <button class="btn btn-primary" onclick="clearSearch()" style="margin-left: 10px;">Clear</button>
+                        </div>
+
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Employee</th>
+                                    <th>Client</th>
+                                    <th>Hours</th>
+                                    <th>Revenue</th>
+                                    <th>GP</th>
+                                    <th>Commission</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="placementsTable"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Upload Files Page -->
+                    <div id="uploadPage" class="page">
+                        <h2 style="margin-bottom: 20px;">Upload Commission Files</h2>
+                        
+                        <div class="commission-rules">
+                            <h4>Commission Rate Structure (GP-Based)</h4>
+                            <ul>
+                                <li>GP < $3.25/hr → 3% commission</li>
+                                <li>$3.25 ≤ GP < $3.50/hr → 4% commission</li>
+                                <li>$3.50 ≤ GP < $4.00/hr → 5% commission</li>
+                                <li>$4.00 ≤ GP < $4.75/hr → 6% commission</li>
+                                <li>GP ≥ $4.75/hr → 7% commission</li>
+                            </ul>
+                        </div>
+
+                        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📁</div>
+                            <h3>Click to Upload Files</h3>
+                            <p>Supports CSV and Excel files</p>
+                            <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls" style="display: none;">
+                        </div>
+
+                        <div id="fileListDiv" class="hidden">
+                            <h4>Selected Files:</h4>
+                            <div id="fileList" class="file-list"></div>
+                            <button class="btn btn-success" onclick="processFiles()">Process Files</button>
+                            <button class="btn btn-danger" onclick="clearFiles()" style="margin-left: 10px;">Clear</button>
+                        </div>
+
+                        <div id="uploadResults" class="hidden alert alert-success">
+                            <h4>Upload Results</h4>
+                            <div id="resultsText"></div>
+                            <button class="btn btn-primary" onclick="showPage('current')" style="margin-top: 10px;">View Updated Data</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="activity-log" id="logContainer">
-            <div>[SYSTEM] Commission Portal initialized</div>
+        <div id="logContainer" class="log">
+            <div>[SYSTEM] Commission Portal Ready</div>
         </div>
     </div>
 
     <script>
+        // Global state
+        let currentUser = null;
+        let currentMonthData = [];
+        let ytdData = [];
+        let placementsData = [];
+
+        // Sample data
+        const initialCurrentMonth = [
+            {employee: 'Pam Henard', client: 'Ajax Building Company, LLC', status: 'New', gp: 336.96, hourlyGP: 6.48, rate: '10.00%', commission: 33.70, month: 'August', day: 3},
+            {employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, rate: '9.75%', commission: 11.49, month: 'August', day: 3},
+            {employee: 'Pam Henard', client: 'MetroNet', status: 'Legacy', gp: 11671.75, hourlyGP: 320.22, rate: '9.75%', commission: 1138.00, month: 'August', day: 3},
+            {employee: 'Pam Henard', client: 'Selective Insurance Group', status: 'New', gp: 437.48, hourlyGP: 12.82, rate: '10.00%', commission: 43.75, month: 'August', day: 3}
+        ];
+
+        const initialYTD = [
+            {employee: 'Pam Henard', month: 'January', directHire: '$250', paraHire: '', gp: '23,617.80', commission: '1,078.51'},
+            {employee: 'Pam Henard', month: 'February', directHire: '', paraHire: '', gp: '30,500.79', commission: '1,458.80'},
+            {employee: 'Pam Henard', month: 'March', directHire: '', paraHire: '', gp: '38,251.61', commission: '1,831.47'},
+            {employee: 'Pam Henard', month: 'August', directHire: '', paraHire: '', gp: '68,656.66', commission: '6,702.69'}
+        ];
+
+        const initialPlacements = [
+            {id: 'PL001', date: '2025-08-03', employee: 'Pam Henard', client: 'Ajax Building Company, LLC', hours: 52, revenue: 3900, gp: 336.96, commission: 33.70, status: 'Active'},
+            {id: 'PL002', date: '2025-08-03', employee: 'Pam Henard', client: 'Evolent', hours: 40, revenue: 2600, gp: 117.84, commission: 11.49, status: 'Complete'},
+            {id: 'PL003', date: '2025-07-15', employee: 'Pam Henard', client: 'TechStart Solutions', hours: 45, revenue: 3600, gp: 1350, commission: 94.50, status: 'Active'}
+        ];
+
+        // Utility functions
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.textContent = `[${time}] ${message}`;
+            if (type === 'error') div.style.color = '#ff6b6b';
+            if (type === 'success') div.style.color = '#51cf66';
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function calculateCommissionRate(hourlyGP) {
+            if (hourlyGP < 3.25) return 0.03;
+            if (hourlyGP < 3.50) return 0.04;
+            if (hourlyGP < 4.00) return 0.05;
+            if (hourlyGP < 4.75) return 0.06;
+            return 0.07;
+        }
+
+        // Main functions
+        function login(role, name) {
+            currentUser = {role, name};
+            
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+            
+            if (role === 'admin' || role === 'manager') {
+                document.getElementById('uploadNav').classList.remove('hidden');
+            }
+            
+            loadData();
+            log(`Logged in as ${name} (${role})`, 'success');
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').style.display = 'block';
+            log('Logged out', 'success');
+        }
+
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById(pageId + 'Page').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Update page content
+            if (pageId === 'current') updateCurrentMonth();
+            if (pageId === 'ytd') updateYTD();
+            if (pageId === 'summary') updateSummary();
+            if (pageId === 'placements') updatePlacements();
+            
+            log(`Navigated to ${pageId}`, 'info');
+        }
+
+        function loadData() {
+            currentMonthData = [...initialCurrentMonth];
+            ytdData = [...initialYTD];
+            placementsData = [...initialPlacements];
+            
+            // Filter for employee role
+            if (currentUser.role === 'employee') {
+                currentMonthData = currentMonthData.filter(item => item.employee === currentUser.name);
+                ytdData = ytdData.filter(item => item.employee === currentUser.name);
+                placementsData = placementsData.filter(item => item.employee === currentUser.name);
+            }
+            
+            updateCurrentMonth();
+        }
+
+        function updateCurrentMonth() {
+            const tbody = document.getElementById('currentTable');
+            tbody.innerHTML = '';
+            
+            let totalGP = 0;
+            let totalCommission = 0;
+            
+            currentMonthData.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.employee}</td>
+                    <td>${item.client}</td>
+                    <td>${item.status}</td>
+                    <td>${item.gp.toFixed(2)}</td>
+                    <td>${item.hourlyGP.toFixed(2)}</td>
+                    <td>${item.rate}</td>
+                    <td>${item.commission.toFixed(2)}</td>
+                    <td>${item.month}</td>
+                    <td>${item.day}</td>
+                `;
+                totalGP += item.gp;
+                totalCommission += item.commission;
+            });
+            
+            // Add total row
+            const totalRow = tbody.insertRow();
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = `
+                <td>Total</td><td></td><td></td>
+                <td>${totalGP.toFixed(2)}</td><td></td><td></td>
+                <td>${totalCommission.toFixed(2)}</td><td></td><td></td>
+            `;
+        }
+
+        function updateYTD() {
+            const tbody = document.getElementById('ytdTable');
+            tbody.innerHTML = '';
+            
+            ytdData.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.employee}</td>
+                    <td>${item.month}</td>
+                    <td>${item.directHire}</td>
+                    <td>${item.paraHire}</td>
+                    <td>${item.gp}</td>
+                    <td>${item.commission}</td>
+                `;
+            });
+            
+            // Add total row
+            const totalRow = tbody.insertRow();
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = `
+                <td>Total</td><td></td>
+                <td>$250</td><td></td>
+                <td>328,673.18</td><td>22,919.35</td>
+            `;
+        }
+
+        function updateSummary() {
+            const statsEl = document.getElementById('summaryStats');
+            const detailsEl = document.getElementById('summaryDetails');
+            
+            const totalPlacements = currentMonthData.length;
+            const totalGP = currentMonthData.reduce((sum, item) => sum + item.gp, 0);
+            const totalCommission = currentMonthData.reduce((sum, item) => sum + item.commission, 0);
+            const avgRate = totalGP > 0 ? (totalCommission / totalGP * 100).toFixed(1) : 0;
+            
+            statsEl.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${totalPlacements}</div>
+                    <div class="stat-label">Total Placements</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">$${totalGP.toLocaleString()}</div>
+                    <div class="stat-label">Total GP</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">$${totalCommission.toLocaleString()}</div>
+                    <div class="stat-label">Total Commission</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgRate}%</div>
+                    <div class="stat-label">Avg Rate</div>
+                </div>
+            `;
+            
+            detailsEl.innerHTML = `
+                <div class="alert alert-info">
+                    <h4>August 2025 Performance Summary</h4>
+                    <p>Pam Henard completed ${totalPlacements} placements with an average commission rate of ${avgRate}%.</p>
+                </div>
+            `;
+        }
+
+        function updatePlacements() {
+            const tbody = document.getElementById('placementsTable');
+            tbody.innerHTML = '';
+            
+            placementsData.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.date}</td>
+                    <td>${item.employee}</td>
+                    <td>${item.client}</td>
+                    <td>${item.hours}</td>
+                    <td>$${item.revenue.toLocaleString()}</td>
+                    <td>$${item.gp.toFixed(2)}</td>
+                    <td>$${item.commission.toFixed(2)}</td>
+                    <td><span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${item.status}</span></td>
+                `;
+            });
+        }
+
+        function filterPlacements() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#placementsTable tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            filterPlacements();
+        }
+
+        // File upload functions
+        document.getElementById('fileInput').addEventListener('change', function() {
+            const files = this.files;
+            if (files.length > 0) {
+                displayFiles(files);
+            }
+        });
+
+        function displayFiles(files) {
+            const fileList = document.getElementById('fileList');
+            const fileListDiv = document.getElementById('fileListDiv');
+            
+            fileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span>${file.name}</span>
+                    <span>${(file.size / 1024).toFixed(1)} KB</span>
+                `;
+                fileList.appendChild(item);
+            });
+            
+            fileListDiv.classList.remove('hidden');
+            log(`Selected ${files.length} file(s)`, 'info');
+        }
+
+        function processFiles() {
+            const files = document.getElementById('fileInput').files;
+            if (files.length === 0) return;
+            
+            log('Processing files...', 'info');
+            let processedCount = 0;
+            let totalProcessed = 0;
+            
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        let data;
+                        
+                        if (file.name.endsWith('.csv')) {
+                            data = parseCSV(e.target.result);
+                        } else {
+                            const workbook = XLSX.read(e.target.result, {type: 'binary'});
+                            const sheetName = workbook.SheetNames[0];
+                            data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                        }
+                        
+                        data.forEach(row => {
+                            const gp = parseFloat(row.GP || row['Gross Profit'] || 0);
+                            const hours = parseFloat(row.Hours || 40);
+                            const employee = row.Employee || row.Name || 'Unknown';
+                            const client = row.Client || row.Company || 'Unknown';
+                            
+                            if (gp > 0 && employee !== 'Unknown') {
+                                const hourlyGP = gp / hours;
+                                const rate = calculateCommissionRate(hourlyGP);
+                                const commission = gp * rate;
+                                
+                                // Add to current month data
+                                currentMonthData.push({
+                                    employee: employee,
+                                    client: client,
+                                    status: 'New',
+                                    gp: gp,
+                                    hourlyGP: hourlyGP,
+                                    rate: (rate * 100).toFixed(2) + '%',
+                                    commission: commission,
+                                    month: 'August',
+                                    day: new Date().getDate()
+                                });
+                                
+                                // Add to placements data
+                                placementsData.push({
+                                    id: `PL${String(placementsData.length + 1).padStart(3, '0')}`,
+                                    date: '2025-08-' + String(new Date().getDate()).padStart(2, '0'),
+                                    employee: employee,
+                                    client: client,
+                                    hours: hours,
+                                    revenue: Math.round(gp * 1.5),
+                                    gp: gp,
+                                    commission: commission,
+                                    status: 'Active'
+                                });
+                                
+                                totalProcessed++;
+                            }
+                        });
+                        
+                        processedCount++;
+                        if (processedCount === files.length) {
+                            showUploadResults(totalProcessed);
+                        }
+                        
+                    } catch (error) {
+                        log(`Error processing ${file.name}: ${error.message}`, 'error');
+                        processedCount++;
+                        if (processedCount === files.length) {
+                            showUploadResults(totalProcessed);
+                        }
+                    }
+                };
+                
+                if (file.name.endsWith('.csv')) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsBinaryString(file);
+                }
+            });
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',').map(v => v.trim());
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                }
+            }
+            
+            return data;
+        }
+
+        function showUploadResults(count) {
+            const resultsEl = document.getElementById('uploadResults');
+            const resultsText = document.getElementById('resultsText');
+            
+            resultsText.innerHTML = `
+                <p><strong>Successfully processed ${count} records!</strong></p>
+                <p>New commission entries have been added to your current month data.</p>
+            `;
+            
+            resultsEl.classList.remove('hidden');
+            updateCurrentMonth(); // Refresh the current month view
+            log(`Upload complete: ${count} records processed`, 'success');
+        }
+
+        function clearFiles() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileListDiv').classList.add('hidden');
+            document.getElementById('uploadResults').classList.add('hidden');
+            log('Files cleared', 'info');
+        }
+
+        // Drag and drop functionality
+        const uploadZone = document.querySelector('.upload-zone');
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            document.getElementById('fileInput').files = files;
+            displayFiles(files);
+        });
+
+        // Initialize
         log('Commission Portal loaded successfully', 'success');
     </script>
 </body>

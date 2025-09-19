@@ -103,21 +103,6 @@
             margin-bottom: 24px;
         }
 
-        .content-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .content-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #1a202c;
-        }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -136,19 +121,9 @@
             color: white;
         }
 
-        .btn-success {
-            background: #48bb78;
-            color: white;
-        }
-
         .btn-danger {
             background: #f56565;
             color: white;
-        }
-
-        .btn-secondary {
-            background: #edf2f7;
-            color: #4a5568;
         }
 
         .login-input {
@@ -199,75 +174,58 @@
         .role-manager { background: #c6f6d5; color: #276749; }
         .role-user { background: #bee3f8; color: #2c5282; }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
-            color: white;
-            padding: 24px;
-            border-radius: 12px;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .data-table {
+        .commission-table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border: 1px solid #e2e8f0;
+            border-collapse: collapse;
+            margin-top: 24px;
+            background: white;
             border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        .data-table th {
+        .commission-table th {
             background: #f7fafc;
-            padding: 16px;
+            padding: 12px 16px;
             text-align: left;
             font-weight: 600;
             color: #2d3748;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 14px;
         }
 
-        .data-table td {
-            padding: 16px;
+        .commission-table td {
+            padding: 10px 16px;
             border-bottom: 1px solid #e2e8f0;
             color: #4a5568;
+            font-size: 14px;
         }
 
-        .data-table tbody tr:hover {
+        .commission-table tbody tr:hover {
             background: #f8faff;
         }
 
-        .hidden { display: none; }
-        .text-center { text-align: center; }
-
-        .file-upload-area {
-            border: 2px dashed #cbd5e0;
-            border-radius: 12px;
-            padding: 32px;
-            text-align: center;
-            margin-bottom: 24px;
+        .commission-table tbody tr:nth-child(even) {
+            background: #f9f9f9;
         }
 
-        .file-input {
-            margin: 8px 0;
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
+        .total-row {
+            background: #e6f3ff !important;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .month-header {
+            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .hidden { 
+            display: none; 
         }
 
         .activity-log {
@@ -281,187 +239,207 @@
             overflow-y: auto;
             margin-top: 24px;
         }
-
-        .commission-rules {
-            background: #f8faff;
-            border-left: 4px solid #12096d;
-            padding: 20px;
-            margin-bottom: 24px;
-            border-radius: 8px;
-        }
-
-        .commission-rules h4 {
-            color: #1a202c;
-            margin-bottom: 12px;
-        }
-
-        .commission-rules table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .commission-rules th,
-        .commission-rules td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .commission-rules th {
-            background: #edf2f7;
-            font-weight: 600;
-            color: #2d3748;
-        }
-
-        .month-selector {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
-            padding: 16px;
-            background: #f8faff;
-            border-radius: 8px;
-        }
-
-        .month-selector select {
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-            background: white;
-        }
-
-        .summary-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 16px;
-        }
-
-        .summary-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a202c;
-        }
-
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-        }
-
-        .summary-stat {
-            text-align: center;
-        }
-
-        .summary-stat-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: #12096d;
-            margin-bottom: 4px;
-        }
-
-        .summary-stat-label {
-            font-size: 12px;
-            color: #4a5568;
-            text-transform: uppercase;
-            font-weight: 500;
-        }
-
-        .filter-bar {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            padding: 16px;
-            background: #f8faff;
-            border-radius: 8px;
-            flex-wrap: wrap;
-        }
-
-        .filter-bar input,
-        .filter-bar select {
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .placement-status {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-active { background: #c6f6d5; color: #276749; }
-        .status-completed { background: #bee3f8; color: #2c5282; }
-        .status-pending { background: #ffeaa7; color: #8b4513; }
-
-        @media (max-width: 768px) {
-            .nav-menu {
-                flex-direction: column;
-            }
-            
-            .nav-item {
-                flex: none;
-                min-width: auto;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .filter-bar {
-                flex-direction: column;
-            }
-        }
     </style>
 </head>
 <body>
+    <!-- Define all JavaScript functions FIRST, before HTML -->
+    <script>
+        // Global variables
+        var currentUser = null;
+        var currentMonthData = [];
+        var ytdData = [];
+
+        // Define ALL functions immediately in global scope
+        function loginAs(role, name, employeeId, managedEmployees) {
+            console.log('loginAs called with:', role, name, employeeId);
+            
+            currentUser = {
+                role: role,
+                name: name,
+                employeeId: employeeId
+            };
+
+            var loginScreen = document.getElementById('loginScreen');
+            var mainApp = document.getElementById('mainApp');
+            
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'block';
+            
+            var userName = document.getElementById('userName');
+            var userRole = document.getElementById('userRole');
+            
+            if (userName) userName.textContent = name;
+            if (userRole) userRole.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+            
+            loadData();
+            showPage('currentMonthPage');
+            log('Signed in as ' + name, 'success');
+        }
+
+        function performLogin() {
+            var username = document.getElementById('loginUsername').value;
+            var password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                log('Please enter credentials', 'error');
+                return;
+            }
+            
+            log('Manual login will be enhanced', 'info');
+        }
+
+        function logout() {
+            currentUser = null;
+            var mainApp = document.getElementById('mainApp');
+            var loginScreen = document.getElementById('loginScreen');
+            
+            if (mainApp) mainApp.style.display = 'none';
+            if (loginScreen) loginScreen.style.display = 'block';
+            
+            log('Signed out successfully', 'info');
+        }
+
+        function showPage(pageId) {
+            var pages = ['currentMonthPage', 'ytdCommissionPage', 'uploadPage'];
+            
+            for (var i = 0; i < pages.length; i++) {
+                var page = document.getElementById(pages[i]);
+                if (page) {
+                    if (pages[i] === pageId) {
+                        page.classList.remove('hidden');
+                    } else {
+                        page.classList.add('hidden');
+                    }
+                }
+            }
+            
+            var navItems = document.querySelectorAll('.nav-item');
+            for (var i = 0; i < navItems.length; i++) {
+                navItems[i].classList.remove('active');
+            }
+            
+            if (pageId === 'currentMonthPage') {
+                if (navItems[0]) navItems[0].classList.add('active');
+                updateCurrentMonthTable();
+            } else if (pageId === 'ytdCommissionPage') {
+                if (navItems[1]) navItems[1].classList.add('active');
+                updateYTDTable();
+            } else if (pageId === 'uploadPage') {
+                if (navItems[2]) navItems[2].classList.add('active');
+            }
+        }
+
+        function log(message, type) {
+            var logContainer = document.getElementById('logContainer');
+            if (!logContainer) return;
+            
+            var timestamp = new Date().toLocaleTimeString();
+            var logEntry = document.createElement('div');
+            logEntry.textContent = '[' + timestamp + '] ' + message;
+            
+            if (type === 'error') logEntry.style.color = '#f56565';
+            if (type === 'success') logEntry.style.color = '#48bb78';
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function loadData() {
+            currentMonthData = [
+                {employee: 'Pam Henard', client: 'Ajax Building Company, LLC', status: 'New', gp: 336.96, hourlyGP: 6.48, commissionRate: '10.00%', totalCommission: 33.70, month: 'August', day: 3},
+                {employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, commissionRate: '9.75%', totalCommission: 11.49, month: 'August', day: 3},
+                {employee: 'Pam Henard', client: 'MetroNet', status: 'Legacy', gp: 11671.75, hourlyGP: 320.22, commissionRate: '9.75%', totalCommission: 1138.00, month: 'August', day: 3},
+                {employee: 'Pam Henard', client: 'Selective Insurance Group', status: 'New', gp: 437.48, hourlyGP: 12.82, commissionRate: '10.00%', totalCommission: 43.75, month: 'August', day: 3}
+            ];
+
+            ytdData = [
+                {employee: 'Pam Henard', month: 'January', directHire: 250, paraHire: '', gp: 23617.80, totalCommission: 1078.51},
+                {employee: 'Pam Henard', month: 'February', directHire: '', paraHire: '', gp: 30500.79, totalCommission: 1458.80},
+                {employee: 'Pam Henard', month: 'March', directHire: '', paraHire: '', gp: 38251.61, totalCommission: 1831.47},
+                {employee: 'Pam Henard', month: 'August', directHire: '', paraHire: '', gp: 68656.66, totalCommission: 6702.69}
+            ];
+        }
+
+        function updateCurrentMonthTable() {
+            var tbody = document.getElementById('currentMonthTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            var totalGP = 0;
+            var totalCommission = 0;
+
+            for (var i = 0; i < currentMonthData.length; i++) {
+                var record = currentMonthData[i];
+                var row = document.createElement('tr');
+                
+                row.innerHTML = 
+                    '<td>' + record.employee + '</td>' +
+                    '<td>' + record.client + '</td>' +
+                    '<td>' + record.status + '</td>' +
+                    '<td>' + record.gp.toFixed(2) + '</td>' +
+                    '<td>' + record.hourlyGP.toFixed(2) + '</td>' +
+                    '<td>' + record.commissionRate + '</td>' +
+                    '<td>' + record.totalCommission.toFixed(2) + '</td>' +
+                    '<td>' + record.month + '</td>' +
+                    '<td>' + record.day + '</td>';
+                
+                tbody.appendChild(row);
+                totalGP += record.gp;
+                totalCommission += record.totalCommission;
+            }
+
+            var totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = 
+                '<td><strong>Total</strong></td>' +
+                '<td></td><td></td>' +
+                '<td><strong>' + totalGP.toFixed(2) + '</strong></td>' +
+                '<td></td><td></td>' +
+                '<td><strong>' + totalCommission.toFixed(2) + '</strong></td>' +
+                '<td></td><td></td>';
+            tbody.appendChild(totalRow);
+        }
+
+        function updateYTDTable() {
+            var tbody = document.getElementById('ytdTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            var totalGP = 0;
+            var totalCommission = 0;
+
+            for (var i = 0; i < ytdData.length; i++) {
+                var record = ytdData[i];
+                var row = document.createElement('tr');
+                
+                row.innerHTML = 
+                    '<td>' + record.employee + '</td>' +
+                    '<td>' + record.month + '</td>' +
+                    '<td>' + (record.directHire ? '$' + record.directHire : '') + '</td>' +
+                    '<td>' + record.paraHire + '</td>' +
+                    '<td>' + record.gp.toLocaleString() + '</td>' +
+                    '<td>' + record.totalCommission.toLocaleString() + '</td>';
+                
+                tbody.appendChild(row);
+                totalGP += record.gp;
+                totalCommission += record.totalCommission;
+            }
+
+            var totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = 
+                '<td><strong>Total</strong></td><td></td>' +
+                '<td><strong>$250</strong></td><td></td>' +
+                '<td><strong>' + totalGP.toLocaleString() + '</strong></td>' +
+                '<td><strong>' + totalCommission.toLocaleString() + '</strong></td>';
+            tbody.appendChild(totalRow);
+        }
+
+        console.log('Functions defined. loginAs type:', typeof loginAs);
+    </script>
+
     <div class="container">
         <div id="loginScreen" class="login-container">
-            <div style="margin-bottom: 32px; text-align: center;">
-                <svg height="48" viewBox="0 0 1500 952.02" style="max-width: 240px;">
-                    <defs>
-                        <linearGradient id="login-logo-gradient" x1="427.35" y1="288.78" x2="1055.89" y2="288.78" gradientUnits="userSpaceOnUse">
-                            <stop offset="0" stop-color="#18efe4"/>
-                            <stop offset="1" stop-color="#12096d"/>
-                        </linearGradient>
-                        <linearGradient id="login-logo-gradient-2" x1="216.99" y1="839.76" x2="1268.21" y2="839.76" gradientUnits="userSpaceOnUse">
-                            <stop offset="0" stop-color="#18efe4"/>
-                            <stop offset="1" stop-color="#12096d"/>
-                        </linearGradient>
-                    </defs>
-                    <g>
-                        <polygon fill="url(#login-logo-gradient)" points="451.77 560.41 740.26 59.41 1031.42 560.41 1055.89 560.41 740.17 17.16 427.35 560.41 451.77 560.41"/>
-                        <polygon fill="url(#login-logo-gradient-2)" points="1143.81 753.79 1231.44 904.58 253.59 904.58 340.42 753.79 316 753.79 216.99 925.74 1268.21 925.74 1168.28 753.79 1143.81 753.79"/>
-                    </g>
-                    <g fill="#12096d">
-                        <path d="M97.81,605.73c8.14,7.07,12.22,16.98,12.22,29.73s-4.1,23.67-12.3,31.01c-8.2,7.35-19.71,11.02-34.52,11.02h-29.73v37.25h-16.4v-119.61h46.14c14.92,0,26.46,3.53,34.6,10.6ZM86.11,655.88c5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58l-29.05.17v52.46h29.05c10.25,0,18.11-2.25,23.58-6.75Z"/>
-                        <path d="M256.3,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM187.1,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                        <path d="M411.45,714.75l-23.75-37.59c-2.73.23-4.96.34-6.66.34h-30.42v37.25h-16.4v-119.61h46.82c15.15,0,26.85,3.5,35.12,10.51,8.26,7.01,12.39,16.95,12.39,29.82,0,9.68-2.25,17.83-6.75,24.43-4.5,6.61-10.96,11.39-19.39,14.35l27.85,40.5h-18.8ZM381.03,662.63c10.25,0,18.11-2.25,23.58-6.75,5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58h-30.42v52.63h30.42Z"/>
-                        <path d="M591.55,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM522.35,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                        <path d="M669.46,595.14h19.48l43.74,84.07,43.4-84.07h19.65v119.61h-15.38l-.17-95.52-42.55,82.88h-10.08l-42.89-82.88v95.52h-15.21v-119.61Z"/>
-                        <path d="M956.62,602.14c9.63,5.36,17.23,12.67,22.81,21.96,5.58,9.29,8.37,19.51,8.37,30.67s-2.79,21.44-8.37,30.84c-5.58,9.4-13.19,16.8-22.81,22.21-9.63,5.41-20.19,8.12-31.7,8.12s-22.07-2.7-31.7-8.12c-9.63-5.41-17.23-12.82-22.81-22.21-5.58-9.4-8.37-19.68-8.37-30.84s2.79-21.39,8.37-30.67c5.58-9.28,13.16-16.6,22.73-21.96,9.57-5.35,20.16-8.03,31.78-8.03s22.07,2.68,31.7,8.03ZM901.94,614.96c-7.12,4.1-12.79,9.65-17,16.66-4.22,7.01-6.32,14.72-6.32,23.15s2.1,16.18,6.32,23.24c4.21,7.07,9.88,12.67,17,16.83,7.12,4.16,14.84,6.24,23.15,6.24s15.97-2.08,22.98-6.24c7.01-4.16,12.59-9.76,16.74-16.83,4.16-7.06,6.24-14.81,6.24-23.24s-2.08-16.15-6.24-23.15c-4.16-7.01-9.74-12.56-16.74-16.66-7.01-4.1-14.67-6.15-22.98-6.15s-16.04,2.05-23.15,6.15Z"/>
-                        <path d="M1077.08,691.77c6.09,6.21,14.49,9.31,25.2,9.31s18.91-3.1,24.95-9.31c6.04-6.21,9.06-14.84,9.06-25.89v-70.74h16.4v70.74c0,15.61-4.47,27.85-13.41,36.74-8.94,8.89-21.27,13.33-36.99,13.33s-28.25-4.44-37.25-13.33c-9-8.89-13.5-21.13-13.5-36.74v-70.74h16.4v70.74c0,11.05,3.05,19.68,9.14,25.89Z"/>
-                        <path d="M1312.12,595.14h16.23v119.61h-16.57l-68.35-92.61v92.61h-16.4v-119.61h16.57l68.52,92.79v-92.79Z"/>
-                        <path d="M1390.04,595.14h93.47v15.04h-38.62v104.57h-16.4v-104.57h-38.45v-15.04Z"/>
-                    </g>
-                </svg>
-            </div>
-            
             <h1 class="login-title">Commission Management Portal</h1>
             
             <div id="authForm" style="margin-bottom: 24px;">
@@ -473,7 +451,7 @@
             <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
                 <p style="color: #4a5568; margin-bottom: 16px;">Demo Access</p>
                 
-                <div class="role-option" onclick="loginAs('admin', 'System Administrator', 'ADMIN001')">
+                <div class="role-option" onclick="loginAs('admin', 'Administrator', 'ADMIN001')">
                     <div>
                         <div class="role-title">Administrator</div>
                         <div class="role-description">Full system access</div>
@@ -481,7 +459,7 @@
                     <div class="role-badge role-admin">Admin</div>
                 </div>
                 
-                <div class="role-option" onclick="loginAs('manager', 'Sales Manager', 'MGR001', ['REC001', 'SAL001'])">
+                <div class="role-option" onclick="loginAs('manager', 'Sales Manager', 'MGR001')">
                     <div>
                         <div class="role-title">Manager</div>
                         <div class="role-description">Team oversight</div>
@@ -489,7 +467,7 @@
                     <div class="role-badge role-manager">Manager</div>
                 </div>
                 
-                <div class="role-option" onclick="loginAs('user', 'John Smith', 'REC001')">
+                <div class="role-option" onclick="loginAs('user', 'Pam Henard', 'REC001')">
                     <div>
                         <div class="role-title">Employee</div>
                         <div class="role-description">Personal data access</div>
@@ -501,36 +479,7 @@
 
         <div id="mainApp" class="hidden">
             <div class="header">
-                <div class="header-logo">
-                    <svg height="32" viewBox="0 0 1500 952.02" style="margin-right: 12px;">
-                        <defs>
-                            <linearGradient id="logo-gradient" x1="427.35" y1="288.78" x2="1055.89" y2="288.78" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#18efe4"/>
-                                <stop offset="1" stop-color="#12096d"/>
-                            </linearGradient>
-                            <linearGradient id="logo-gradient-2" x1="216.99" y1="839.76" x2="1268.21" y2="839.76" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#18efe4"/>
-                                <stop offset="1" stop-color="#12096d"/>
-                            </linearGradient>
-                        </defs>
-                        <g>
-                            <polygon fill="url(#logo-gradient)" points="451.77 560.41 740.26 59.41 1031.42 560.41 1055.89 560.41 740.17 17.16 427.35 560.41 451.77 560.41"/>
-                            <polygon fill="url(#logo-gradient-2)" points="1143.81 753.79 1231.44 904.58 253.59 904.58 340.42 753.79 316 753.79 216.99 925.74 1268.21 925.74 1168.28 753.79 1143.81 753.79"/>
-                        </g>
-                        <g fill="#12096d">
-                            <path d="M97.81,605.73c8.14,7.07,12.22,16.98,12.22,29.73s-4.1,23.67-12.3,31.01c-8.2,7.35-19.71,11.02-34.52,11.02h-29.73v37.25h-16.4v-119.61h46.14c14.92,0,26.46,3.53,34.6,10.6ZM86.11,655.88c5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58l-29.05.17v52.46h29.05c10.25,0,18.11-2.25,23.58-6.75Z"/>
-                            <path d="M256.3,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM187.1,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                            <path d="M411.45,714.75l-23.75-37.59c-2.73.23-4.96.34-6.66.34h-30.42v37.25h-16.4v-119.61h46.82c15.15,0,26.85,3.5,35.12,10.51,8.26,7.01,12.39,16.95,12.39,29.82,0,9.68-2.25,17.83-6.75,24.43-4.5,6.61-10.96,11.39-19.39,14.35l27.85,40.5h-18.8ZM381.03,662.63c10.25,0,18.11-2.25,23.58-6.75,5.47-4.5,8.2-11.13,8.2-19.91s-2.73-15.01-8.2-19.4c-5.47-4.38-13.33-6.58-23.58-6.58h-30.42v52.63h30.42Z"/>
-                            <path d="M591.55,714.75l-12.64-29.05h-63.05l-12.47,29.05h-17.26l53.14-119.61h17.09l52.97,119.61h-17.77ZM522.35,670.84h50.24l-25.29-58.1-24.95,58.1Z"/>
-                            <path d="M669.46,595.14h19.48l43.74,84.07,43.4-84.07h19.65v119.61h-15.38l-.17-95.52-42.55,82.88h-10.08l-42.89-82.88v95.52h-15.21v-119.61Z"/>
-                            <path d="M956.62,602.14c9.63,5.36,17.23,12.67,22.81,21.96,5.58,9.29,8.37,19.51,8.37,30.67s-2.79,21.44-8.37,30.84c-5.58,9.4-13.19,16.8-22.81,22.21-9.63,5.41-20.19,8.12-31.7,8.12s-22.07-2.7-31.7-8.12c-9.63-5.41-17.23-12.82-22.81-22.21-5.58-9.4-8.37-19.68-8.37-30.84s2.79-21.39,8.37-30.67c5.58-9.28,13.16-16.6,22.73-21.96,9.57-5.35,20.16-8.03,31.78-8.03s22.07,2.68,31.7,8.03ZM901.94,614.96c-7.12,4.1-12.79,9.65-17,16.66-4.22,7.01-6.32,14.72-6.32,23.15s2.1,16.18,6.32,23.24c4.21,7.07,9.88,12.67,17,16.83,7.12,4.16,14.84,6.24,23.15,6.24s15.97-2.08,22.98-6.24c7.01-4.16,12.59-9.76,16.74-16.83,4.16-7.06,6.24-14.81,6.24-23.24s-2.08-16.15-6.24-23.15c-4.16-7.01-9.74-12.56-16.74-16.66-7.01-4.1-14.67-6.15-22.98-6.15s-16.04,2.05-23.15,6.15Z"/>
-                            <path d="M1077.08,691.77c6.09,6.21,14.49,9.31,25.2,9.31s18.91-3.1,24.95-9.31c6.04-6.21,9.06-14.84,9.06-25.89v-70.74h16.4v70.74c0,15.61-4.47,27.85-13.41,36.74-8.94,8.89-21.27,13.33-36.99,13.33s-28.25-4.44-37.25-13.33c-9-8.89-13.5-21.13-13.5-36.74v-70.74h16.4v70.74c0,11.05,3.05,19.68,9.14,25.89Z"/>
-                            <path d="M1312.12,595.14h16.23v119.61h-16.57l-68.35-92.61v92.61h-16.4v-119.61h16.57l68.52,92.79v-92.79Z"/>
-                            <path d="M1390.04,595.14h93.47v15.04h-38.62v104.57h-16.4v-104.57h-38.45v-15.04Z"/>
-                        </g>
-                    </svg>
-                    Commission Portal
-                </div>
+                <div class="header-logo">Commission Portal</div>
                 <div>
                     <span id="userName">User Name</span> | 
                     <span id="userRole">Role</span>
@@ -539,299 +488,60 @@
             </div>
 
             <div class="nav-menu">
-                <button class="nav-item active" onclick="navigateTo('dashboard')">Dashboard</button>
-                <button class="nav-item" onclick="navigateTo('monthly-summary')">Monthly Summary</button>
-                <button class="nav-item" onclick="navigateTo('placements')">All Placements</button>
-                <button class="nav-item" id="uploadNav" onclick="navigateTo('upload')">Upload Files</button>
-                <button class="nav-item hidden" id="usersNav" onclick="navigateTo('users')">User Management</button>
-                <button class="nav-item" onclick="navigateTo('reports')">Reports</button>
+                <button class="nav-item active" onclick="showPage('currentMonthPage')">Current Month</button>
+                <button class="nav-item" onclick="showPage('ytdCommissionPage')">YTD Commission</button>
+                <button class="nav-item" onclick="showPage('uploadPage')">Upload Files</button>
             </div>
 
-            <!-- Dashboard Page -->
-            <div id="dashboardPage" class="main-content">
-                <div class="content-header">
-                    <h2 class="content-title" id="dashboardTitle">Commission Dashboard</h2>
-                    <button class="btn btn-secondary" onclick="exportData()">Export Data</button>
+            <div id="currentMonthPage" class="main-content">
+                <div class="month-header">
+                    <h2>Current Month Contract Commission Details</h2>
+                    <p>August 2025</p>
                 </div>
 
-                <div class="commission-rules">
-                    <h4>Commission Rate Structure (Based on Hourly GP)</h4>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Gross Profit Range</th>
-                                <th>Commission Rate</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>GP < $3.25</td><td>3%</td></tr>
-                            <tr><td>$3.25 ≤ GP < $3.50</td><td>4%</td></tr>
-                            <tr><td>$3.50 ≤ GP < $4.00</td><td>5%</td></tr>
-                            <tr><td>$4.00 ≤ GP < $4.75</td><td>6%</td></tr>
-                            <tr><td>GP ≥ $4.75</td><td>7%</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalCommission">$0</div>
-                        <div class="stat-label">Total Commission</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalGP">$0</div>
-                        <div class="stat-label">Total Gross Profit</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="avgCommissionRate">0%</div>
-                        <div class="stat-label">Average Rate</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="uniqueEmployees">0</div>
-                        <div class="stat-label">Active Employees</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalRevenue">$0</div>
-                        <div class="stat-label">Total Revenue</div>
-                    </div>
-                </div>
-
-                <table class="data-table">
+                <table class="commission-table">
                     <thead>
                         <tr>
-                            <th>Week Ending</th>
                             <th>Employee</th>
                             <th>Client</th>
-                            <th>Hours</th>
-                            <th>Total GP</th>
-                            <th>Hourly GP</th>
-                            <th>Rate</th>
-                            <th>Commission</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dashboardTableBody">
-                        <tr>
-                            <td colspan="8" class="text-center" style="padding: 48px; color: #a0aec0;">
-                                Commission data will appear after login
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Monthly Summary Page -->
-            <div id="monthlySummaryPage" class="main-content hidden">
-                <div class="content-header">
-                    <h2 class="content-title">Monthly Summary</h2>
-                    <button class="btn btn-secondary" onclick="exportMonthlySummary()">Export Summary</button>
-                </div>
-
-                <div class="month-selector">
-                    <label for="monthSelect"><strong>Select Month:</strong></label>
-                    <select id="monthSelect" onchange="updateMonthlySummary()">
-                        <option value="2025-01">January 2025</option>
-                        <option value="2024-12">December 2024</option>
-                        <option value="2024-11">November 2024</option>
-                        <option value="2024-10">October 2024</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="refreshMonthlySummary()">Refresh</button>
-                </div>
-
-                <div id="monthlySummaryContent">
-                    <!-- Monthly summary cards will be populated here -->
-                </div>
-            </div>
-
-            <!-- All Placements Page -->
-            <div id="placementsPage" class="main-content hidden">
-                <div class="content-header">
-                    <h2 class="content-title">All Placements</h2>
-                    <button class="btn btn-secondary" onclick="exportPlacements()">Export Placements</button>
-                </div>
-
-                <div class="filter-bar">
-                    <input type="text" id="employeeFilter" placeholder="Search Employee..." onkeyup="filterPlacements()" />
-                    <input type="text" id="clientFilter" placeholder="Search Client..." onkeyup="filterPlacements()" />
-                    <select id="statusFilter" onchange="filterPlacements()">
-                        <option value="">All Statuses</option>
-                        <option value="active">Active</option>
-                        <option value="completed">Completed</option>
-                        <option value="pending">Pending</option>
-                    </select>
-                    <input type="date" id="startDate" onchange="filterPlacements()" />
-                    <input type="date" id="endDate" onchange="filterPlacements()" />
-                    <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
-                </div>
-
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Placement ID</th>
-                            <th>Date</th>
-                            <th>Employee</th>
-                            <th>Client</th>
-                            <th>Candidate</th>
-                            <th>Position</th>
-                            <th>Hours</th>
-                            <th>Bill Rate</th>
-                            <th>Pay Rate</th>
-                            <th>Revenue</th>
+                            <th>Sales Status</th>
                             <th>GP</th>
-                            <th>Commission</th>
-                            <th>Status</th>
+                            <th>Hourly GP</th>
+                            <th>Commission Rate</th>
+                            <th>Total Commission</th>
+                            <th>Month</th>
+                            <th>Day</th>
                         </tr>
                     </thead>
-                    <tbody id="placementsTableBody">
-                        <tr>
-                            <td colspan="13" class="text-center" style="padding: 48px; color: #a0aec0;">
-                                Placement data will appear here
-                            </td>
-                        </tr>
+                    <tbody id="currentMonthTableBody">
                     </tbody>
                 </table>
             </div>
 
-            <!-- Upload Files Page -->
-            <div id="uploadPage" class="main-content hidden">
-                <div class="content-header">
-                    <h2 class="content-title">Upload TOA Files</h2>
+            <div id="ytdCommissionPage" class="main-content hidden">
+                <div class="month-header">
+                    <h2>2025 YTD Commission</h2>
                 </div>
 
-                <div class="commission-rules">
-                    <h4>Expected TOA File Format</h4>
-                    <p style="margin-bottom: 12px;">Your TOA files should include the following columns:</p>
-                    <ul style="margin-left: 20px; color: #4a5568;">
-                        <li>Employee Name or ID</li>
-                        <li>Client Name</li>
-                        <li>Week Ending Date</li>
-                        <li>Hours Worked</li>
-                        <li>Gross Profit Amount</li>
-                        <li>Bill Rate & Pay Rate (optional)</li>
-                        <li>Candidate Name (optional)</li>
-                        <li>Position Title (optional)</li>
-                    </ul>
-                </div>
-
-                <div class="file-upload-area">
-                    <h4 style="margin-bottom: 16px;">TOA Files</h4>
-                    <input type="file" id="toaFiles" class="file-input" accept=".csv,.xlsx,.xls" multiple />
-                    <p style="color: #4a5568; font-size: 14px;">Upload Bullhorn TOA files (CSV or Excel format)</p>
-                </div>
-
-                <div style="text-align: center; margin-top: 32px;">
-                    <button class="btn btn-success" onclick="processCommissionFiles()">Process Files</button>
-                    <button class="btn btn-secondary" onclick="clearFiles()">Clear</button>
-                </div>
-
-                <div id="uploadResults" class="hidden" style="margin-top: 24px;">
-                    <h4 style="margin-bottom: 16px;">Processing Results</h4>
-                    <div id="processingSummary" style="background: #f8faff; padding: 16px; border-radius: 8px; border-left: 4px solid #48bb78;">
-                        <!-- Results will appear here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reports Page -->
-            <div id="reportsPage" class="main-content hidden">
-                <div class="content-header">
-                    <h2 class="content-title">Reports</h2>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="reportsTotalRevenue">$0</div>
-                        <div class="stat-label">YTD Revenue</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="reportsTotalGP">$0</div>
-                        <div class="stat-label">YTD Gross Profit</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="reportsTotalCommissions">$0</div>
-                        <div class="stat-label">YTD Commissions</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="reportsActivePlacements">0</div>
-                        <div class="stat-label">Active Placements</div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 32px;">
-                    <h4 style="margin-bottom: 16px;">Available Reports</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
-                        <div class="summary-card">
-                            <h5 style="margin-bottom: 12px;">Commission Summary Report</h5>
-                            <p style="color: #4a5568; margin-bottom: 16px;">Detailed commission breakdown by employee and period.</p>
-                            <button class="btn btn-primary">Generate Report</button>
-                        </div>
-                        <div class="summary-card">
-                            <h5 style="margin-bottom: 12px;">Revenue Analysis</h5>
-                            <p style="color: #4a5568; margin-bottom: 16px;">Revenue trends and performance metrics.</p>
-                            <button class="btn btn-primary">Generate Report</button>
-                        </div>
-                        <div class="summary-card">
-                            <h5 style="margin-bottom: 12px;">Employee Performance</h5>
-                            <p style="color: #4a5568; margin-bottom: 16px;">Individual employee performance and rankings.</p>
-                            <button class="btn btn-primary">Generate Report</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- User Management Page -->
-            <div id="usersPage" class="main-content hidden">
-                <div class="content-header">
-                    <h2 class="content-title">User Management</h2>
-                    <button class="btn btn-success" onclick="alert('User creation feature coming soon')">Create User</button>
-                </div>
-
-                <table class="data-table">
+                <table class="commission-table">
                     <thead>
                         <tr>
-                            <th>Username</th>
-                            <th>Full Name</th>
-                            <th>Role</th>
-                            <th>Employee ID</th>
-                            <th>Last Login</th>
-                            <th>Actions</th>
+                            <th>Employee</th>
+                            <th>Month</th>
+                            <th>DirectHire Revenue</th>
+                            <th>ParaHire Revenue</th>
+                            <th>GP</th>
+                            <th>Total Commission</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>admin</td>
-                            <td>System Administrator</td>
-                            <td><span class="role-badge role-admin">Admin</span></td>
-                            <td>ADMIN001</td>
-                            <td>2025-01-19 10:30 AM</td>
-                            <td>
-                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Edit</button>
-                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Disable</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>manager</td>
-                            <td>Sales Manager</td>
-                            <td><span class="role-badge role-manager">Manager</span></td>
-                            <td>MGR001</td>
-                            <td>2025-01-19 09:15 AM</td>
-                            <td>
-                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Edit</button>
-                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Disable</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>jsmith</td>
-                            <td>John Smith</td>
-                            <td><span class="role-badge role-user">Employee</span></td>
-                            <td>REC001</td>
-                            <td>2025-01-19 08:45 AM</td>
-                            <td>
-                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Edit</button>
-                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Disable</button>
-                            </td>
-                        </tr>
+                    <tbody id="ytdTableBody">
                     </tbody>
                 </table>
+            </div>
+
+            <div id="uploadPage" class="main-content hidden">
+                <h2>Upload Commission Files</h2>
+                <p>File upload functionality will be implemented here.</p>
             </div>
         </div>
 
@@ -841,373 +551,9 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        let currentUser = { role: null, name: null, employeeId: null, assignedEmployees: [] };
-        let commissionData = [];
-        let placementsData = [];
-        let currentPage = 'dashboard';
-
-        const PERMISSIONS = {
-            VIEW_ALL_DATA: 'view_all_data',
-            UPLOAD_FILES: 'upload_files',
-            MANAGE_USERS: 'manage_users',
-            VIEW_OWN_DATA: 'view_own_data'
-        };
-
-        const ROLE_PERMISSIONS = {
-            admin: [PERMISSIONS.VIEW_ALL_DATA, PERMISSIONS.UPLOAD_FILES, PERMISSIONS.MANAGE_USERS, PERMISSIONS.VIEW_OWN_DATA],
-            manager: [PERMISSIONS.VIEW_ALL_DATA, PERMISSIONS.UPLOAD_FILES, PERMISSIONS.VIEW_OWN_DATA],
-            user: [PERMISSIONS.VIEW_OWN_DATA]
-        };
-
-        // Commission calculation based on hourly GP
-        function calculateCommissionRate(hourlyGP) {
-            if (hourlyGP < 3.25) return 0.03;
-            if (hourlyGP < 3.50) return 0.04;
-            if (hourlyGP < 4.00) return 0.05;
-            if (hourlyGP < 4.75) return 0.06;
-            return 0.07;
-        }
-
-        function calculateCommission(totalGP, hours) {
-            if (hours === 0) return { commission: 0, rate: 0, hourlyGP: 0 };
-            
-            const hourlyGP = totalGP / hours;
-            const rate = calculateCommissionRate(hourlyGP);
-            const commission = totalGP * rate;
-            
-            return { commission, rate, hourlyGP };
-        }
-
-        function performLogin() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            if (!username || !password) {
-                log('Please enter credentials', 'error');
-                return;
-            }
-            
-            log('Login functionality will be enhanced in future updates', 'info');
-        }
-
-        function loginAs(role, name, employeeId, managedEmployees = []) {
-            currentUser = {
-                role: role,
-                name: name,
-                employeeId: employeeId,
-                assignedEmployees: role === 'admin' ? [] : (managedEmployees.length ? managedEmployees : [employeeId]),
-                permissions: ROLE_PERMISSIONS[role] || []
-            };
-
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            
-            updateUIForRole();
-            loadDemoData();
-            navigateTo('dashboard');
-            log(`Signed in as ${currentUser.name}`, 'success');
-        }
-
-        function logout() {
-            currentUser = { role: null, name: null, employeeId: null, assignedEmployees: [] };
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            log('Signed out successfully', 'info');
-        }
-
-        function updateUIForRole() {
-            document.getElementById('userName').textContent = currentUser.name;
-            document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-            
-            const uploadNav = document.getElementById('uploadNav');
-            const usersNav = document.getElementById('usersNav');
-            
-            if (currentUser.role === 'admin' || currentUser.role === 'manager') {
-                uploadNav.classList.remove('hidden');
-            }
-            
-            if (currentUser.role === 'admin') {
-                usersNav.classList.remove('hidden');
-            }
-
-            const dashboardTitle = document.getElementById('dashboardTitle');
-            if (currentUser.role === 'admin') {
-                dashboardTitle.textContent = 'Commission Dashboard - All Employees';
-            } else if (currentUser.role === 'manager') {
-                dashboardTitle.textContent = 'Commission Dashboard - Your Team';
-            } else {
-                dashboardTitle.textContent = 'Your Commission Dashboard';
-            }
-        }
-
-        function navigateTo(page) {
-            // Hide all pages
-            document.querySelectorAll('.main-content').forEach(el => {
-                el.classList.add('hidden');
-            });
-            
-            // Remove active class from all nav items
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-            });
-            
-            // Show selected page
-            const pageElement = document.getElementById(page + 'Page');
-            if (pageElement) {
-                pageElement.classList.remove('hidden');
-                currentPage = page;
-                
-                // Add active class to current nav item
-                event.target.classList.add('active');
-                
-                // Load page-specific data
-                switch(page) {
-                    case 'dashboard':
-                        updateDashboard();
-                        break;
-                    case 'monthly-summary':
-                        updateMonthlySummary();
-                        break;
-                    case 'placements':
-                        updatePlacementsTable();
-                        break;
-                    case 'reports':
-                        updateReports();
-                        break;
-                }
-            }
-        }
-
-        function loadDemoData() {
-            // Generate more comprehensive demo data
-            placementsData = [
-                {
-                    id: 'PL001',
-                    date: '2025-01-07',
-                    employee: 'Sarah Johnson',
-                    employeeId: 'REC001',
-                    client: 'TechCorp Industries',
-                    candidate: 'Mike Rodriguez',
-                    position: 'Software Developer',
-                    hours: 40,
-                    billRate: 75,
-                    payRate: 45,
-                    revenue: 3000,
-                    grossProfit: 1200,
-                    status: 'active',
-                    type: 'Recruiter'
-                },
-                {
-                    id: 'PL002',
-                    date: '2025-01-14',
-                    employee: 'Michael Chen',
-                    employeeId: 'SAL001',
-                    client: 'Global Solutions Ltd',
-                    candidate: 'Anna Thompson',
-                    position: 'Project Manager',
-                    hours: 35,
-                    billRate: 85,
-                    payRate: 55,
-                    revenue: 2975,
-                    grossProfit: 1050,
-                    status: 'completed',
-                    type: 'Sales'
-                },
-                {
-                    id: 'PL003',
-                    date: '2025-01-21',
-                    employee: 'Sarah Johnson',
-                    employeeId: 'REC001',
-                    client: 'Innovation Corp',
-                    candidate: 'David Liu',
-                    position: 'Data Analyst',
-                    hours: 42,
-                    billRate: 70,
-                    payRate: 40,
-                    revenue: 2940,
-                    grossProfit: 1260,
-                    status: 'active',
-                    type: 'Recruiter'
-                },
-                {
-                    id: 'PL004',
-                    date: '2024-12-28',
-                    employee: 'Sarah Johnson',
-                    employeeId: 'REC001',
-                    client: 'StartupXYZ',
-                    candidate: 'Jennifer Adams',
-                    position: 'UX Designer',
-                    hours: 38,
-                    billRate: 80,
-                    payRate: 50,
-                    revenue: 3040,
-                    grossProfit: 1140,
-                    status: 'completed',
-                    type: 'Recruiter'
-                }
-            ];
-
-            // Calculate commissions for each placement
-            placementsData = placementsData.map(placement => {
-                const calc = calculateCommission(placement.grossProfit, placement.hours);
-                return {
-                    ...placement,
-                    hourlyGP: calc.hourlyGP,
-                    commissionRate: calc.rate,
-                    commission: calc.commission
-                };
-            });
-
-            // Create commission data from placements
-            commissionData = placementsData.map(placement => ({
-                date: placement.date,
-                employee: placement.employee,
-                employeeId: placement.employeeId,
-                client: placement.client,
-                hours: placement.hours,
-                grossProfit: placement.grossProfit,
-                revenue: placement.revenue,
-                hourlyGP: placement.hourlyGP,
-                commissionRate: placement.commissionRate,
-                commission: placement.commission,
-                type: placement.type
-            }));
-
-            // Filter based on user role
-            if (currentUser.role === 'user') {
-                commissionData = commissionData.filter(record => 
-                    record.employeeId === currentUser.employeeId
-                );
-                placementsData = placementsData.filter(placement => 
-                    placement.employeeId === currentUser.employeeId
-                );
-            } else if (currentUser.role === 'manager' && currentUser.assignedEmployees.length > 0) {
-                commissionData = commissionData.filter(record => 
-                    currentUser.assignedEmployees.includes(record.employeeId)
-                );
-                placementsData = placementsData.filter(placement => 
-                    currentUser.assignedEmployees.includes(placement.employeeId)
-                );
-            }
-
-            updateDashboard();
-        }
-
-        function updateDashboard() {
-            const totalCommission = commissionData.reduce((sum, record) => sum + record.commission, 0);
-            const totalGP = commissionData.reduce((sum, record) => sum + record.grossProfit, 0);
-            const totalRevenue = commissionData.reduce((sum, record) => sum + record.revenue, 0);
-            const avgCommissionRate = totalGP > 0 ? (totalCommission / totalGP) * 100 : 0;
-            const uniqueEmployees = new Set(commissionData.map(record => record.employeeId)).size;
-
-            document.getElementById('totalCommission').textContent = `${totalCommission.toLocaleString()}`;
-            document.getElementById('totalGP').textContent = `${totalGP.toLocaleString()}`;
-            document.getElementById('totalRevenue').textContent = `${totalRevenue.toLocaleString()}`;
-            document.getElementById('avgCommissionRate').textContent = `${avgCommissionRate.toFixed(1)}%`;
-            document.getElementById('uniqueEmployees').textContent = uniqueEmployees;
-
-            updateDashboardTable();
-        }
-
-        function updateDashboardTable() {
-            const tbody = document.getElementById('dashboardTableBody');
-            tbody.innerHTML = '';
-
-            if (commissionData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding: 48px;">No commission data available</td></tr>';
-                return;
-            }
-
-            // Show last 10 records for dashboard
-            const recentData = commissionData.slice(-10);
-            
-            recentData.forEach(record => {
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${new Date(record.date).toLocaleDateString()}</td>
-                    <td>
-                        <div style="font-weight: 600;">${record.employee}</div>
-                        <div style="font-size: 13px; color: #4a5568;">${record.type}</div>
-                    </td>
-                    <td>${record.client}</td>
-                    <td>${record.hours}h</td>
-                    <td>${record.grossProfit.toLocaleString()}</td>
-                    <td style="font-weight: 600;">${record.hourlyGP.toFixed(2)}</td>
-                    <td>${(record.commissionRate * 100).toFixed(1)}%</td>
-                    <td style="font-weight: 600; color: #48bb78;">${record.commission.toFixed(2)}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function updateMonthlySummary() {
-            const selectedMonth = document.getElementById('monthSelect').value;
-            const summaryContent = document.getElementById('monthlySummaryContent');
-            
-            // Filter data by selected month
-            const monthData = placementsData.filter(placement => {
-                return placement.date.startsWith(selectedMonth);
-            });
-
-            if (monthData.length === 0) {
-                summaryContent.innerHTML = '<div class="text-center" style="padding: 48px; color: #a0aec0;">No data available for selected month</div>';
-                return;
-            }
-
-            // Group by employee
-            const employeeSummary = {};
-            monthData.forEach(placement => {
-                if (!employeeSummary[placement.employeeId]) {
-                    employeeSummary[placement.employeeId] = {
-                        name: placement.employee,
-                        placements: 0,
-                        totalHours: 0,
-                        totalRevenue: 0,
-                        totalGP: 0,
-                        totalCommission: 0
-                    };
-                }
-                
-                const summary = employeeSummary[placement.employeeId];
-                summary.placements++;
-                summary.totalHours += placement.hours;
-                summary.totalRevenue += placement.revenue;
-                summary.totalGP += placement.grossProfit;
-                summary.totalCommission += placement.commission;
-            });
-
-            // Calculate overall totals
-            const overallTotals = {
-                placements: monthData.length,
-                totalHours: monthData.reduce((sum, p) => sum + p.hours, 0),
-                totalRevenue: monthData.reduce((sum, p) => sum + p.revenue, 0),
-                totalGP: monthData.reduce((sum, p) => sum + p.grossProfit, 0),
-                totalCommission: monthData.reduce((sum, p) => sum + p.commission, 0)
-            };
-
-            // Create summary HTML
-            let summaryHTML = `
-                <div class="summary-card">
-                    <div class="summary-header">
-                        <div class="summary-title">Overall Summary - ${new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-                    </div>
-                    <div class="summary-stats">
-                        <div class="summary-stat">
-                            <div class="summary-stat-value">${overallTotals.placements}</div>
-                            <div class="summary-stat-label">Total Placements</div>
-                        </div>
-                        <div class="summary-stat">
-                            <div class="summary-stat-value">${overallTotals.totalHours}</div>
-                            <div class="summary-stat-label">Total Hours</div>
-                        </div>
-                        <div class="summary-stat">
-                            <div class="summary-stat-value">${overallTotals.totalRevenue.toLocaleString()}</div>
-                            <div class="summary-stat-label">Total Revenue</div>
-                        </div>
-                        <div class="summary-stat">
-                            <div class="summary-stat-value">${overallTotals.totalGP.toLocaleString()}</div>
-                            <div class="summary
-
+        log('Commission Portal loaded successfully', 'success');
+        console.log('Final check - loginAs function:', typeof loginAs);
+    </script>
+</body>
+</html>

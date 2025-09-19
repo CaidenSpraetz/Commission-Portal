@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paramount Commission Portal</title>
+    <title>User Management - Commission Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Lato:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -17,17 +17,6 @@
         }
 
         .container { max-width: 1400px; margin: 0 auto; }
-
-        .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-            max-width: 500px;
-            margin: 100px auto;
-            text-align: center;
-        }
 
         .header {
             background: rgba(255, 255, 255, 0.95);
@@ -45,28 +34,7 @@
             font-size: 20px;
             font-weight: bold;
             color: #12096d;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .role-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .role-admin { background: #fff3cd; color: #856404; }
-        .role-manager { background: #d4edda; color: #155724; }
-        .role-user { background: #d1ecf1; color: #0c5460; }
 
         .main-content {
             background: rgba(255, 255, 255, 0.95);
@@ -87,7 +55,7 @@
             font-size: 16px;
             font-weight: 500;
             transition: transform 0.2s, box-shadow 0.2s;
-            margin: 10px;
+            margin: 5px;
         }
 
         .btn:hover {
@@ -99,34 +67,39 @@
         .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); }
         .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
 
-        .stats-grid {
+        .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
-        .stat-card {
-            background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        .form-group {
+            margin-bottom: 15px;
         }
 
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
+        .form-group label {
+            display: block;
             margin-bottom: 5px;
+            font-weight: 500;
+            color: #12096d;
         }
 
-        .stat-label {
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             font-size: 14px;
-            opacity: 0.9;
         }
 
-        .commission-table {
+        .form-control:focus {
+            outline: none;
+            border-color: #12096d;
+            box-shadow: 0 0 0 2px rgba(18, 9, 109, 0.2);
+        }
+
+        .user-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
@@ -136,45 +109,91 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
 
-        .commission-table th, .commission-table td {
+        .user-table th,
+        .user-table td {
             padding: 15px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
 
-        .commission-table th {
+        .user-table th {
             background: linear-gradient(135deg, #12096d 0%, #18efe4 100%);
             color: white;
             font-weight: 600;
         }
 
-        .commission-table tbody tr:hover {
+        .user-table tbody tr:hover {
             background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
         }
 
-        .hidden { display: none; }
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
 
-        .file-upload {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px dashed #12096d;
+        .role-admin { background: #fff3cd; color: #856404; }
+        .role-manager { background: #d4edda; color: #155724; }
+        .role-user { background: #d1ecf1; color: #0c5460; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
             border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
-            text-align: center;
-            transition: all 0.3s ease;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
         }
 
-        .file-upload:hover {
-            border-color: #18efe4;
-            background: rgba(255, 255, 255, 1);
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
         }
 
-        .file-input {
-            margin: 10px;
-            padding: 10px;
+        .close:hover { color: black; }
+
+        .employee-selector {
+            max-height: 200px;
+            overflow-y: auto;
             border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .employee-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 2px 0;
+            background: white;
             border-radius: 5px;
-            width: 300px;
+            cursor: pointer;
+        }
+
+        .employee-item:hover {
+            background: #e3f2fd;
+        }
+
+        .employee-item input[type="checkbox"] {
+            margin-right: 10px;
         }
 
         .log-container {
@@ -184,579 +203,547 @@
             padding: 20px;
             font-family: 'Courier New', monospace;
             font-size: 13px;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
             margin-top: 20px;
         }
 
-        .tier-indicator {
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin: 10px 0; }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 5px;
         }
 
-        .tier-base { background: #e3f2fd; color: #1565c0; }
-        .tier-1 { background: #fff3e0; color: #e65100; }
-        .tier-2 { background: #f3e5f5; color: #7b1fa2; }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #12096d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .tab {
+            flex: 1;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #12096d;
+            font-weight: 500;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .tab.active {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Login Screen -->
-        <div id="loginScreen" class="login-container">
-            <h2 style="color: #12096d; margin-bottom: 30px;">Commission Portal Access</h2>
-            
-            <div style="margin-bottom: 20px;">
-                <button class="btn" onclick="loginAs('admin', 'Administrator', '473682')" style="width: 200px;">Administrator</button><br>
-                <small style="color: #666;">Full access to all data and system management</small>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <button class="btn btn-success" onclick="loginAs('manager', 'Sales Manager', 'MGR001', ['REC001', 'SAL001'])" style="width: 200px;">Manager</button><br>
-                <small style="color: #666;">View team data and upload commission files</small>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <button class="btn btn-secondary" onclick="loginAs('user', 'John Smith', 'REC001')" style="width: 200px;">Employee</button><br>
-                <small style="color: #666;">View personal commission data only</small>
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">User Management - Commission Portal</div>
+            <div>
+                <button class="btn btn-secondary" onclick="goBackToPortal()">Back to Portal</button>
             </div>
         </div>
 
-        <!-- Main Application -->
-        <div id="mainApp" class="hidden">
-            <!-- Header -->
-            <div class="header">
-                <div class="logo">
-                    <span>Paramount Commission Portal</span>
-                </div>
-                <div class="user-info">
-                    <span id="welcomeText">User</span>
-                    <span id="roleBadge" class="role-badge role-user">User</span>
-                    <button class="btn btn-danger" onclick="logout()" style="font-size: 12px; padding: 8px 15px;">Logout</button>
-                </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('users')">Manage Users</div>
+                <div class="tab" onclick="switchTab('employees')">Employee Database</div>
+                <div class="tab" onclick="switchTab('assignments')">View Assignments</div>
             </div>
 
-            <!-- Manager/Admin: File Upload -->
-            <div id="managerContent" class="main-content hidden">
-                <h3>Upload Commission Files</h3>
-                
-                <div class="file-upload">
-                    <h4 style="color: #12096d; margin-bottom: 15px;">Master Structure File</h4>
-                    <input type="file" id="masterFile" class="file-input" accept=".xlsx,.xls" />
-                    <p style="color: #666; font-size: 14px;">Upload your Master Structure Excel file</p>
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content active">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>User Management</h3>
+                    <button class="btn btn-success" onclick="openCreateUserModal()">Create New User</button>
                 </div>
 
-                <div class="file-upload">
-                    <h4 style="color: #12096d; margin-bottom: 15px;">TOA Files</h4>
-                    <input type="file" id="toaFiles" class="file-input" accept=".csv,.xlsx" multiple />
-                    <p style="color: #666; font-size: 14px;">Upload your Bullhorn TOA files (multiple files allowed)</p>
-                </div>
-
-                <div style="text-align: center; margin: 30px 0;">
-                    <button class="btn btn-success" onclick="processCommissionFiles()">
-                        <span id="uploadButtonText">Calculate Commissions</span>
-                        <span id="uploadSpinner" class="loading hidden"></span>
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearFiles()">Clear Files</button>
-                </div>
-            </div>
-
-            <!-- Commission Dashboard -->
-            <div class="main-content">
-                <h3 id="dashboardTitle">Commission Dashboard</h3>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalCommission">$0</div>
-                        <div class="stat-label">Total Commission</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalGP">$0</div>
-                        <div class="stat-label">Total Gross Profit</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="avgCommissionRate">0%</div>
-                        <div class="stat-label">Average Rate</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="uniqueEmployees">0</div>
-                        <div class="stat-label">Employees</div>
-                    </div>
-                </div>
-
-                <table class="commission-table">
+                <table class="user-table">
                     <thead>
                         <tr>
-                            <th>Week Ending</th>
-                            <th>Employee</th>
-                            <th>Client</th>
-                            <th>Gross Profit</th>
-                            <th>Cumulative GP</th>
-                            <th>Tier</th>
-                            <th>Rate</th>
-                            <th>Commission</th>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Role</th>
+                            <th>Employee ID</th>
+                            <th>Assigned Employees</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="commissionTableBody">
+                    <tbody id="userTableBody">
                         <tr>
-                            <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
-                                Select your role to view commission data
+                            <td colspan="6" style="text-align: center; padding: 40px; color: #666;">
+                                No users created yet. Click "Create New User" to add users.
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Activity Log -->
-            <div class="log-container" id="logContainer">
-                <div style="color: #00ff88;">[SYSTEM] Commission Portal loaded - Local processing mode</div>
-                <div style="color: #87ceeb;">[INFO] Role-based access control enabled</div>
-                <div style="color: #ffd700;">[READY] Select your access level to begin</div>
+            <!-- Employees Tab -->
+            <div id="employeesTab" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Employee Database</h3>
+                    <button class="btn btn-success" onclick="refreshEmployeeDatabase()">Refresh from Commission Data</button>
+                </div>
+
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Employee ID</th>
+                            <th>Employee Name</th>
+                            <th>Total Commission YTD</th>
+                            <th>Assigned To User</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 40px; color: #666;">
+                                Upload commission files to populate employee database
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Assignments Tab -->
+            <div id="assignmentsTab" class="tab-content">
+                <h3>User-Employee Assignments</h3>
+                <div id="assignmentsList">
+                    <p style="color: #666; text-align: center; padding: 40px;">
+                        Create users to view assignment relationships
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="log-container" id="logContainer">
+            <div style="color: #00ff88;">[SYSTEM] User Management system loaded</div>
+            <div style="color: #87ceeb;">[INFO] Admin access required for user management functions</div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="createUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3 style="margin-bottom: 20px; color: #12096d;">Create New User</h3>
+            
+            <div class="form-group">
+                <label for="username">Username (Login ID)</label>
+                <input type="text" id="username" class="form-control" placeholder="Enter username">
+            </div>
+
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" class="form-control" placeholder="Enter full name">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter password">
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" class="form-control" onchange="updateRoleOptions()">
+                    <option value="user">Employee (View Own Data)</option>
+                    <option value="manager">Manager (View Team Data)</option>
+                    <option value="admin">Administrator (View All Data)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="employeeId">Employee ID (for own commission data)</label>
+                <select id="employeeId" class="form-control">
+                    <option value="">Select Employee ID</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="teamAssignmentGroup" style="display: none;">
+                <label>Assign Team Members (Manager Role)</label>
+                <div class="employee-selector" id="employeeSelector">
+                    <!-- Employee checkboxes will be populated here -->
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-success" onclick="createUser()">Create User</button>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // User session management
-        let currentUser = { userId: null, role: null, name: null, employeeId: null, managedEmployees: [], permissions: [] };
+        // Data storage
+        let users = [];
+        let employees = [];
         let commissionData = [];
-        let employeeRules = {};
 
-        // Permission system
-        const PERMISSIONS = {
-            VIEW_ALL_DATA: 'view_all_data',
-            UPLOAD_FILES: 'upload_files', 
-            VIEW_OWN_DATA: 'view_own_data'
-        };
+        // Initialize the system
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            loadEmployeeData();
+            refreshAllTables();
+            log('User management system initialized', 'success');
+        });
 
-        const ROLE_PERMISSIONS = {
-            admin: [PERMISSIONS.VIEW_ALL_DATA, PERMISSIONS.UPLOAD_FILES, PERMISSIONS.VIEW_OWN_DATA],
-            manager: [PERMISSIONS.VIEW_ALL_DATA, PERMISSIONS.UPLOAD_FILES, PERMISSIONS.VIEW_OWN_DATA],
-            user: [PERMISSIONS.VIEW_OWN_DATA]
-        };
+        // Tab switching
+        function switchTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            log(`Switched to ${tabName} tab`, 'info');
+        }
 
-        // Authentication system
-        function loginAs(role, name, employeeId, managedEmployees = []) {
-            currentUser = {
-                userId: `user_${employeeId}`,
+        // Modal functions
+        function openCreateUserModal() {
+            populateEmployeeDropdowns();
+            document.getElementById('createUserModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+            clearModalForm();
+        }
+
+        function clearModalForm() {
+            document.getElementById('username').value = '';
+            document.getElementById('fullName').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('role').value = 'user';
+            document.getElementById('employeeId').value = '';
+            updateRoleOptions();
+        }
+
+        // Role-based form updates
+        function updateRoleOptions() {
+            const role = document.getElementById('role').value;
+            const teamGroup = document.getElementById('teamAssignmentGroup');
+            
+            if (role === 'manager') {
+                teamGroup.style.display = 'block';
+                populateEmployeeSelector();
+            } else {
+                teamGroup.style.display = 'none';
+            }
+        }
+
+        // Populate dropdowns with employee data
+        function populateEmployeeDropdowns() {
+            const employeeSelect = document.getElementById('employeeId');
+            employeeSelect.innerHTML = '<option value="">Select Employee ID</option>';
+            
+            employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.id} - ${emp.name}`;
+                employeeSelect.appendChild(option);
+            });
+        }
+
+        function populateEmployeeSelector() {
+            const selector = document.getElementById('employeeSelector');
+            selector.innerHTML = '';
+            
+            employees.forEach(emp => {
+                const item = document.createElement('div');
+                item.className = 'employee-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="emp_${emp.id}" value="${emp.id}">
+                    <label for="emp_${emp.id}">${emp.name} (${emp.id})</label>
+                `;
+                selector.appendChild(item);
+            });
+        }
+
+        // User management functions
+        function createUser() {
+            const username = document.getElementById('username').value.trim();
+            const fullName = document.getElementById('fullName').value.trim();
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            const employeeId = document.getElementById('employeeId').value;
+            
+            // Validation
+            if (!username || !fullName || !password) {
+                log('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (users.find(u => u.username === username)) {
+                log('Username already exists', 'error');
+                return;
+            }
+
+            // Get assigned team members for managers
+            let assignedEmployees = [];
+            if (role === 'manager') {
+                const checkedBoxes = document.querySelectorAll('#employeeSelector input[type="checkbox"]:checked');
+                assignedEmployees = Array.from(checkedBoxes).map(cb => cb.value);
+            } else if (role === 'admin') {
+                // Admins see all employees
+                assignedEmployees = employees.map(emp => emp.id);
+            } else {
+                // Regular users only see their own data
+                assignedEmployees = employeeId ? [employeeId] : [];
+            }
+
+            // Create user object
+            const newUser = {
+                id: generateUserId(),
+                username: username,
+                fullName: fullName,
+                password: password, // In production, this should be hashed
                 role: role,
-                name: name,
                 employeeId: employeeId,
-                managedEmployees: managedEmployees,
-                permissions: ROLE_PERMISSIONS[role] || []
+                assignedEmployees: assignedEmployees,
+                createdAt: new Date().toISOString()
             };
 
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
+            users.push(newUser);
+            saveUserData();
+            refreshAllTables();
+            closeModal();
             
-            updateUIForRole();
-            log(`Logged in as ${currentUser.name} (${role})`, 'success');
+            log(`User ${username} created successfully with ${assignedEmployees.length} assigned employees`, 'success');
         }
 
-        function logout() {
-            currentUser = { userId: null, role: null, name: null, employeeId: null, managedEmployees: [], permissions: [] };
-            commissionData = [];
-            
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            
-            log('Logged out successfully', 'info');
-        }
-
-        function hasPermission(permission) {
-            return currentUser.permissions.includes(permission);
-        }
-
-        function updateUIForRole() {
-            document.getElementById('welcomeText').textContent = currentUser.name;
-            document.getElementById('roleBadge').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-            document.getElementById('roleBadge').className = `role-badge role-${currentUser.role}`;
-            
-            const managerContent = document.getElementById('managerContent');
-            const dashboardTitle = document.getElementById('dashboardTitle');
-            
-            if (currentUser.role === 'admin') {
-                managerContent.classList.remove('hidden');
-                dashboardTitle.textContent = 'Commission Dashboard - All Employees';
-            } else if (currentUser.role === 'manager') {
-                managerContent.classList.remove('hidden');
-                dashboardTitle.textContent = 'Commission Dashboard - Your Team';
-            } else {
-                managerContent.classList.add('hidden');
-                dashboardTitle.textContent = 'Your Commission Dashboard';
-            }
-
-            loadUserCommissionData();
-        }
-
-        // Load commission data - NO SERVER CALLS
-        function loadUserCommissionData() {
-            log('Loading commission data...', 'info');
-            
-            if (loadFromBrowserStorage()) {
-                filterDataByRole();
-                updateDashboard();
-                log(`Loaded ${commissionData.length} commission records from browser storage`, 'success');
-            } else {
-                log('No saved data found, loading demo data...', 'warning');
-                loadDemoData();
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                users = users.filter(u => u.id !== userId);
+                saveUserData();
+                refreshAllTables();
+                log('User deleted successfully', 'success');
             }
         }
 
-        // Process commission files locally
-        async function processCommissionFiles() {
-            const masterFileInput = document.getElementById('masterFile');
-            const toaFilesInput = document.getElementById('toaFiles');
-            const uploadButton = document.getElementById('uploadButtonText');
-            const uploadSpinner = document.getElementById('uploadSpinner');
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+            
+            // Populate modal with user data
+            document.getElementById('username').value = user.username;
+            document.getElementById('fullName').value = user.fullName;
+            document.getElementById('password').value = user.password;
+            document.getElementById('role').value = user.role;
+            document.getElementById('employeeId').value = user.employeeId;
+            
+            updateRoleOptions();
+            
+            // For managers, check assigned employees
+            if (user.role === 'manager') {
+                setTimeout(() => {
+                    user.assignedEmployees.forEach(empId => {
+                        const checkbox = document.getElementById(`emp_${empId}`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }, 100);
+            }
+            
+            // Delete the old user before creating the updated one
+            users = users.filter(u => u.id !== userId);
+            
+            openCreateUserModal();
+            log(`Editing user: ${user.username}`, 'info');
+        }
 
-            if (!hasPermission(PERMISSIONS.UPLOAD_FILES)) {
-                log('You do not have permission to upload files', 'error');
+        // Employee database functions
+        function refreshEmployeeDatabase() {
+            loadCommissionData();
+            
+            // Extract unique employees from commission data
+            const employeeMap = new Map();
+            
+            commissionData.forEach(record => {
+                if (!employeeMap.has(record.employeeId)) {
+                    employeeMap.set(record.employeeId, {
+                        id: record.employeeId,
+                        name: record.employee,
+                        totalCommission: 0,
+                        assignedToUser: null
+                    });
+                }
+                
+                employeeMap.get(record.employeeId).totalCommission += (record.commission || 0);
+            });
+
+            employees = Array.from(employeeMap.values());
+            
+            // Update assigned user information
+            employees.forEach(emp => {
+                const assignedUser = users.find(u => u.assignedEmployees.includes(emp.id));
+                emp.assignedToUser = assignedUser ? assignedUser.fullName : 'Unassigned';
+            });
+
+            saveEmployeeData();
+            refreshAllTables();
+            log(`Employee database refreshed: ${employees.length} employees found`, 'success');
+        }
+
+        // Table refresh functions
+        function refreshAllTables() {
+            refreshUserTable();
+            refreshEmployeeTable();
+            refreshAssignmentsView();
+        }
+
+        function refreshUserTable() {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #666;">No users created yet. Click "Create New User" to add users.</td></tr>';
                 return;
             }
 
-            if (!masterFileInput.files.length || !toaFilesInput.files.length) {
-                log('Please select both Master Structure and TOA files', 'error');
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.fullName}</td>
+                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                    <td>${user.employeeId || '-'}</td>
+                    <td>${user.assignedEmployees.length} employees</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="editUser('${user.id}')">Edit</button>
+                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="deleteUser('${user.id}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function refreshEmployeeTable() {
+            const tbody = document.getElementById('employeeTableBody');
+            tbody.innerHTML = '';
+            
+            if (employees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #666;">Upload commission files to populate employee database</td></tr>';
                 return;
             }
 
+            employees.forEach(emp => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${emp.id}</strong></td>
+                    <td>${emp.name}</td>
+                    <td>$${(emp.totalCommission || 0).toLocaleString('en-US', {maximumFractionDigits: 0})}</td>
+                    <td>${emp.assignedToUser || 'Unassigned'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function refreshAssignmentsView() {
+            const container = document.getElementById('assignmentsList');
+            container.innerHTML = '';
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">Create users to view assignment relationships</p>';
+                return;
+            }
+
+            users.forEach(user => {
+                const assignmentDiv = document.createElement('div');
+                assignmentDiv.style.cssText = 'margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 10px;';
+                
+                const employeeList = user.assignedEmployees.map(empId => {
+                    const emp = employees.find(e => e.id === empId);
+                    return emp ? `${emp.name} (${emp.id})` : empId;
+                }).join(', ') || 'No employees assigned';
+                
+                assignmentDiv.innerHTML = `
+                    <h4>${user.fullName} (${user.username}) - <span class="role-badge role-${user.role}">${user.role}</span></h4>
+                    <p><strong>Assigned Employees:</strong> ${employeeList}</p>
+                    <p><strong>Can View:</strong> ${user.assignedEmployees.length} employee commission records</p>
+                `;
+                
+                container.appendChild(assignmentDiv);
+            });
+        }
+
+        // Data persistence functions
+        function saveUserData() {
             try {
-                uploadButton.textContent = 'Processing...';
-                uploadSpinner.classList.remove('hidden');
-                
-                log('Processing commission files locally...', 'info');
-                
-                await processMasterFile(masterFileInput.files[0]);
-                await processTOAFiles(toaFilesInput.files);
-                
-                calculateCommissions();
-                saveToBrowserStorage();
-                updateDashboard();
-                
-                log(`Commission processing completed: ${commissionData.length} records processed`, 'success');
-                clearFiles();
-
+                localStorage.setItem('commissionPortalUsers', JSON.stringify(users));
             } catch (error) {
-                log(`Error processing files: ${error.message}`, 'error');
-            } finally {
-                uploadButton.textContent = 'Calculate Commissions';
-                uploadSpinner.classList.add('hidden');
+                log(`Error saving user data: ${error.message}`, 'error');
             }
         }
 
-        async function processMasterFile(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const data = XLSX.utils.sheet_to_json(worksheet);
-
-            employeeRules = {};
-            
-            data.forEach(row => {
-                const employeeId = row['Employee ID'] || row['EmployeeID'] || row['ID'];
-                const name = row['Employee Name'] || row['Name'] || row['Employee'];
-                const baseRate = parseFloat(row['Base Rate'] || row['BaseRate'] || 0) / 100;
-                
-                if (employeeId && name) {
-                    employeeRules[employeeId] = {
-                        name: name,
-                        baseRate: baseRate,
-                        tiers: []
-                    };
-
-                    for (let i = 1; i <= 5; i++) {
-                        const tierGP = row[`Tier ${i} GP`] || row[`Tier${i}GP`];
-                        const tierRate = row[`Tier ${i} Rate`] || row[`Tier${i}Rate`];
-                        
-                        if (tierGP && tierRate) {
-                            employeeRules[employeeId].tiers.push({
-                                threshold: parseFloat(tierGP),
-                                rate: parseFloat(tierRate) / 100
-                            });
-                        }
-                    }
-                }
-            });
-
-            log(`Master Structure processed: ${Object.keys(employeeRules).length} employees`, 'success');
-        }
-
-        async function processTOAFiles(files) {
-            let allTOAData = [];
-
-            for (const file of files) {
-                let fileData;
-                if (file.name.endsWith('.csv')) {
-                    const text = await file.text();
-                    fileData = parseCSV(text);
-                } else {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    fileData = XLSX.utils.sheet_to_json(worksheet);
-                }
-                allTOAData = allTOAData.concat(fileData);
-            }
-
-            allTOAData.sort((a, b) => {
-                const dateA = new Date(a['WE date'] || a['Week Ending'] || a['Date']);
-                const dateB = new Date(b['WE date'] || b['Week Ending'] || b['Date']);
-                return dateA - dateB;
-            });
-
-            window.processedTOAData = allTOAData;
-            log(`TOA processing complete: ${allTOAData.length} records`, 'success');
-        }
-
-        function calculateCommissions() {
-            commissionData = [];
-            const cumulativeGP = {};
-            
-            Object.keys(employeeRules).forEach(id => {
-                cumulativeGP[id] = 0;
-            });
-
-            window.processedTOAData.forEach(record => {
-                const weDate = record['WE date'] || record['Week Ending'] || record['Date'];
-                const gp = parseFloat(record.GP || record['Gross Profit'] || record['GrossProfit'] || 0);
-                const client = record.Client || record['Client Name'] || record['ClientName'];
-                const recruiterId = record['Placement Recruiter ID'] || record['RecruiterID'];
-                const salesId = record['Placement Sales ID'] || record['SalesID'];
-
-                if (recruiterId && employeeRules[recruiterId]) {
-                    cumulativeGP[recruiterId] += gp;
-                    const rate = getCommissionRate(employeeRules[recruiterId], cumulativeGP[recruiterId]);
-                    const commission = gp * rate;
-                    
-                    commissionData.push({
-                        date: weDate,
-                        employee: employeeRules[recruiterId].name,
-                        employeeId: recruiterId,
-                        client: client,
-                        grossProfit: gp,
-                        cumulativeGP: cumulativeGP[recruiterId],
-                        commissionRate: rate,
-                        commission: commission,
-                        type: 'Recruiter',
-                        tierStatus: getTierStatus(employeeRules[recruiterId], cumulativeGP[recruiterId])
-                    });
-                }
-
-                if (salesId && employeeRules[salesId]) {
-                    cumulativeGP[salesId] += gp;
-                    const rate = getCommissionRate(employeeRules[salesId], cumulativeGP[salesId]);
-                    const commission = gp * rate;
-                    
-                    commissionData.push({
-                        date: weDate,
-                        employee: employeeRules[salesId].name,
-                        employeeId: salesId,
-                        client: client,
-                        grossProfit: gp,
-                        cumulativeGP: cumulativeGP[salesId],
-                        commissionRate: rate,
-                        commission: commission,
-                        type: 'Sales',
-                        tierStatus: getTierStatus(employeeRules[salesId], cumulativeGP[salesId])
-                    });
-                }
-            });
-
-            commissionData.sort((a, b) => new Date(a.date) - new Date(b.date));
-        }
-
-        function getCommissionRate(employee, cumulativeGP) {
-            let rate = employee.baseRate;
-            const sortedTiers = employee.tiers.sort((a, b) => b.threshold - a.threshold);
-            
-            for (const tier of sortedTiers) {
-                if (cumulativeGP >= tier.threshold) {
-                    rate = tier.rate;
-                    break;
-                }
-            }
-            return rate;
-        }
-
-        function getTierStatus(employee, cumulativeGP) {
-            const sortedTiers = employee.tiers.sort((a, b) => b.threshold - a.threshold);
-            for (let i = 0; i < sortedTiers.length; i++) {
-                if (cumulativeGP >= sortedTiers[i].threshold) {
-                    return `Tier ${sortedTiers.length - i}`;
-                }
-            }
-            return 'Base';
-        }
-
-        function parseCSV(text) {
-            const lines = text.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim()) {
-                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index] || '';
-                    });
-                    data.push(row);
-                }
-            }
-            return data;
-        }
-
-        function saveToBrowserStorage() {
+        function loadUserData() {
             try {
-                const dataToSave = {
-                    commissionData: commissionData,
-                    employeeRules: employeeRules,
-                    timestamp: new Date().toISOString(),
-                    uploadedBy: currentUser.userId
-                };
-                
-                localStorage.setItem('commissionPortalData', JSON.stringify(dataToSave));
-                log('Commission data saved locally', 'success');
+                const savedUsers = localStorage.getItem('commissionPortalUsers');
+                if (savedUsers) {
+                    users = JSON.parse(savedUsers);
+                }
             } catch (error) {
-                log(`Error saving data: ${error.message}`, 'warning');
+                log(`Error loading user data: ${error.message}`, 'error');
+                users = [];
             }
         }
 
-        function loadFromBrowserStorage() {
+        function saveEmployeeData() {
+            try {
+                localStorage.setItem('commissionPortalEmployees', JSON.stringify(employees));
+            } catch (error) {
+                log(`Error saving employee data: ${error.message}`, 'error');
+            }
+        }
+
+        function loadEmployeeData() {
+            try {
+                const savedEmployees = localStorage.getItem('commissionPortalEmployees');
+                if (savedEmployees) {
+                    employees = JSON.parse(savedEmployees);
+                }
+            } catch (error) {
+                log(`Error loading employee data: ${error.message}`, 'error');
+                employees = [];
+            }
+        }
+
+        function loadCommissionData() {
             try {
                 const savedData = localStorage.getItem('commissionPortalData');
                 if (savedData) {
                     const parsed = JSON.parse(savedData);
                     commissionData = parsed.commissionData || [];
-                    employeeRules = parsed.employeeRules || {};
-                    return true;
                 }
             } catch (error) {
-                log(`Error loading saved data: ${error.message}`, 'warning');
-            }
-            return false;
-        }
-
-        function filterDataByRole() {
-            if (currentUser.role === 'user') {
-                commissionData = commissionData.filter(record => record.employeeId === currentUser.employeeId);
-            } else if (currentUser.role === 'manager') {
-                const teamIds = [...currentUser.managedEmployees, currentUser.employeeId];
-                commissionData = commissionData.filter(record => teamIds.includes(record.employeeId));
+                log(`Error loading commission data: ${error.message}`, 'error');
+                commissionData = [];
             }
         }
 
-        function updateDashboard() {
-            const totalCommission = commissionData.reduce((sum, record) => sum + (record.commission || 0), 0);
-            const totalGP = commissionData.reduce((sum, record) => sum + (record.grossProfit || 0), 0);
-            const avgCommissionRate = totalGP > 0 ? (totalCommission / totalGP) * 100 : 0;
-            const uniqueEmployees = new Set(commissionData.map(record => record.employeeId)).size;
-
-            document.getElementById('totalCommission').textContent = `$${totalCommission.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-            document.getElementById('totalGP').textContent = `$${totalGP.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
-            document.getElementById('avgCommissionRate').textContent = `${avgCommissionRate.toFixed(1)}%`;
-            document.getElementById('uniqueEmployees').textContent = uniqueEmployees;
-
-            updateCommissionTable();
+        // Utility functions
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         }
 
-        function updateCommissionTable() {
-            const tableBody = document.getElementById('commissionTableBody');
-            tableBody.innerHTML = '';
-
-            if (commissionData.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = '<td colspan="8" style="text-align: center; padding: 40px; color: #666;">No commission data available. Upload files to process commission calculations.</td>';
-                tableBody.appendChild(row);
-                return;
-            }
-
-            commissionData.forEach(record => {
-                const row = document.createElement('tr');
-                const tierClass = record.tierStatus === 'Base' ? 'tier-base' : 
-                                 record.tierStatus === 'Tier 1' ? 'tier-1' : 'tier-2';
-                
-                row.innerHTML = `
-                    <td>${new Date(record.date).toLocaleDateString()}</td>
-                    <td>
-                        <div style="font-weight: bold;">${record.employee}</div>
-                        <div style="font-size: 12px; color: #666;">${record.type}</div>
-                    </td>
-                    <td>${record.client}</td>
-                    <td>${record.grossProfit.toLocaleString('en-US')}</td>
-                    <td>${record.cumulativeGP.toLocaleString('en-US')}</td>
-                    <td><span class="tier-indicator ${tierClass}">${record.tierStatus}</span></td>
-                    <td>${(record.commissionRate * 100).toFixed(1)}%</td>
-                    <td style="font-weight: bold; color: #28a745;">${record.commission.toLocaleString('en-US', {maximumFractionDigits: 0})}</td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-        }
-
-        function loadDemoData() {
-            const demoData = [
-                {
-                    date: '2025-01-07',
-                    employee: 'Elane Buresi',
-                    employeeId: '473682',
-                    client: 'ABC Corp',
-                    grossProfit: 15000,
-                    cumulativeGP: 15000,
-                    commissionRate: 0.33,
-                    commission: 4950,
-                    type: 'Recruiter',
-                    tierStatus: 'Base'
-                },
-                {
-                    date: '2025-01-14',
-                    employee: 'John Smith',
-                    employeeId: 'REC001',
-                    client: 'XYZ Ltd',
-                    grossProfit: 22000,
-                    cumulativeGP: 22000,
-                    commissionRate: 0.30,
-                    commission: 6600,
-                    type: 'Recruiter',
-                    tierStatus: 'Base'
-                }
-            ];
-
-            if (currentUser.role === 'user') {
-                commissionData = demoData.filter(record => record.employeeId === currentUser.employeeId);
-            } else if (currentUser.role === 'manager') {
-                const teamIds = [...currentUser.managedEmployees, currentUser.employeeId];
-                commissionData = demoData.filter(record => teamIds.includes(record.employeeId));
-            } else {
-                commissionData = demoData;
-            }
-
-            updateDashboard();
-            log('Demo data loaded based on your role', 'info');
-        }
-
-        function clearFiles() {
-            document.getElementById('masterFile').value = '';
-            document.getElementById('toaFiles').value = '';
-            log('File selections cleared', 'info');
+        function goBackToPortal() {
+            // This would navigate back to the main portal
+            // For now, we'll just log the action
+            log('Navigating back to main portal...', 'info');
+            // In a real implementation: window.location.href = 'index.html';
         }
 
         function log(message, type = 'info') {
@@ -779,11 +766,18 @@
             logContainer.scrollTop = logContainer.scrollHeight;
         }
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            log('Commission Portal loaded successfully - Local processing mode', 'success');
-            log('Select your access level to begin using the system', 'info');
-        });
+        // Export function for integration with main portal
+        window.UserManagement = {
+            getUsers: () => users,
+            validateLogin: (username, password) => {
+                const user = users.find(u => u.username === username && u.password === password);
+                return user || null;
+            },
+            getUserPermissions: (userId) => {
+                const user = users.find(u => u.id === userId);
+                return user ? user.assignedEmployees : [];
+            }
+        };
     </script>
 </body>
 </html>

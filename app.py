@@ -1,9 +1,13 @@
 from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
-import hashlib
 import pandas as pd
 from werkzeug.utils import secure_filename
+from datetime import datetime
+
+# Import Bullhorn API module
+from bullhorn_api import get_bullhorn_commission_data, BullhornAPI
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'commission-portal-secret-key')
@@ -49,8 +53,16 @@ class CommissionData(db.Model):
     month = db.Column(db.String(20))
     day = db.Column(db.Integer)
 
-# ================= Helpers =================
+# ================= Password Security Helpers =================
+def hash_password(password):
+    """Hash password securely"""
+    return generate_password_hash(password, method='pbkdf2:sha256')
 
+def verify_password(password, hash):
+    """Verify password against hash"""
+    return check_password_hash(hash, password)
+
+# ================= Existing Helpers =================
 def _first_match(row_map, candidates):
     """Return first non-empty value by scanning row_map (lowercased headers -> values)."""
     for key in candidates:
@@ -115,7 +127,6 @@ def _infer_commission_rate(status, gp, provided_rate):
 # ================= Routes =================
 @app.route('/')
 def index():
-    # Ensure templates/index.html exists in your repo
     return render_template('index.html')
 
 @app.route('/api/login', methods=['POST'])
@@ -129,12 +140,11 @@ def login():
     if not username or not password:
         return jsonify({'success': False, 'error': 'Username and password required'})
 
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
     employee = Employee.query.filter_by(
-        username=username, password_hash=password_hash, status='Active'
+        username=username, status='Active'
     ).first()
 
-    if employee:
+    if employee and verify_password(password, employee.password_hash):
         session['user_id'] = employee.id
         session['username'] = employee.username
         session['role'] = employee.role
@@ -184,7 +194,7 @@ def add_employee():
     if Employee.query.filter_by(username=data['username']).first():
         return jsonify({'success': False, 'error': 'Username already exists'})
 
-    password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+    password_hash = hash_password(data['password'])
     employee = Employee(
         name=data['name'], email=data['email'], username=data['username'],
         password_hash=password_hash, role=data['role'], job_function=data['job_function']
@@ -263,8 +273,7 @@ def upload_file():
         elif filename.endswith('.xlsx'):
             df = pd.read_excel(saved_path, engine='openpyxl')
         elif filename.endswith('.xls'):
-            import xlrd  # noqa: F401
-            df = pd.read_excel(saved_path, engine='xlrd')
+            df = pd.read_excel(saved_path, engine='openpyxl')  # openpyxl can handle .xls too
         else:
             return jsonify({'success': False, 'error': 'Unsupported file format'})
 
@@ -338,6 +347,143 @@ def upload_file():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Processing error: {str(e)}'})
 
+# ================= Bullhorn API Routes =================
+
+@app.route('/api/sync-bullhorn', methods=['POST'])
+def sync_bullhorn_data():
+    """Sync commission data from Bullhorn API"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session.get('role') not in ['admin', 'manager']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+
+    try:
+        data = request.get_json() or {}
+        
+        # Parse date range from request
+        start_date_str = data.get('start_date')
+        include_toa = data.get('include_toa', True)
+        include_permanent = data.get('include_permanent', True)
+        
+        # Default to start of current year if no date provided
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'})
+        else:
+            start_date = datetime(datetime.now().year, 1, 1)
+        
+        # Get data from Bullhorn
+        bullhorn_data = get_bullhorn_commission_data(
+            include_toa=include_toa,
+            include_permanent=include_permanent,
+            start_date=start_date
+        )
+        
+        if not bullhorn_data:
+            return jsonify({'success': False, 'error': 'No data retrieved from Bullhorn API'})
+        
+        # Insert new data
+        processed_count = 0
+        for record in bullhorn_data:
+            try:
+                commission_data = CommissionData(
+                    employee_name=record['employee_name'],
+                    client=record['client'],
+                    status=record['status'],
+                    gp=record['gp'],
+                    hourly_gp=record['hourly_gp'],
+                    commission_rate=record['commission_rate'],
+                    commission=record['commission'],
+                    month=record['month'],
+                    day=record['day']
+                )
+                db.session.add(commission_data)
+                processed_count += 1
+            except Exception as e:
+                print(f"Error processing record: {e}")
+                continue
+        
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'processed': processed_count,
+            'total_fetched': len(bullhorn_data)
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Sync error: {str(e)}'})
+
+@app.route('/api/test-bullhorn', methods=['GET'])
+def test_bullhorn_connection():
+    """Test Bullhorn API connection"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session.get('role') not in ['admin', 'manager']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    try:
+        api = BullhornAPI()
+        success = api.authenticate()
+        
+        if success:
+            return jsonify({
+                'success': True, 
+                'message': 'Successfully connected to Bullhorn API',
+                'rest_url': api.rest_url
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': 'Failed to authenticate with Bullhorn API'
+            })
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Connection test failed: {str(e)}'})
+
+@app.route('/api/bullhorn-summary', methods=['GET'])
+def get_bullhorn_summary():
+    """Get summary of available Bullhorn data"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session.get('role') not in ['admin', 'manager']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    
+    try:
+        api = BullhornAPI()
+        if not api.authenticate():
+            return jsonify({'success': False, 'error': 'Authentication failed'})
+        
+        # Get counts for current month
+        now = datetime.now()
+        
+        # Get permanent placements count for current year
+        perm_fields = ["id"]
+        start_of_year = int(datetime(now.year, 1, 1).timestamp() * 1000)
+        perm_where = f"employmentType='Permanent' AND dateBegin>={start_of_year}"
+        perm_data, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
+        
+        # Get TOA records count for current month
+        toa_fields = ["id"]
+        start_month_ms = int(datetime(now.year, now.month, 1).timestamp() * 1000)
+        end_month_ms = int(datetime(now.year, now.month + 1, 1).timestamp() * 1000) if now.month < 12 else int(datetime(now.year + 1, 1, 1).timestamp() * 1000)
+        toa_where = f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}"
+        toa_data, toa_total = api.fetch_entity("PlacementTimeUnit", toa_fields, toa_where, 1)
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'permanent_placements_ytd': perm_total,
+                'toa_records_current_month': toa_total,
+                'last_sync': None
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Summary error: {str(e)}'})
+
 # ================= Init DB & seed sample data =================
 def init_db():
     with app.app_context():
@@ -352,7 +498,7 @@ def init_db():
             for u in users:
                 user = Employee(
                     name=u['name'], email=u['email'], username=u['username'],
-                    password_hash=hashlib.sha256(u['password'].encode()).hexdigest(),
+                    password_hash=hash_password(u['password']),
                     role=u['role'], job_function=u['job_function']
                 )
                 db.session.add(user)

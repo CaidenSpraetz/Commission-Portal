@@ -38,6 +38,7 @@
     .page { display: none; }
     .page.active { display: block; }
     .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 500; transition: all 0.2s; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-primary { background: var(--indigo); color: white; }
     .btn-success { background: var(--aegean); color: white; }
     .btn-danger { background: var(--danger); color: white; }
@@ -110,6 +111,7 @@
             <li class="nav-item" data-page="placements" role="button" tabindex="0">All Placements</li>
             <li class="nav-item hidden" id="employeeNav" data-page="employees" role="button" tabindex="0">Employees</li>
             <li class="nav-item hidden" id="uploadNav" data-page="upload" role="button" tabindex="0">Upload Files</li>
+            <li class="nav-item hidden" id="bullhornNav" data-page="bullhorn" role="button" tabindex="0">Bullhorn Sync</li>
           </ul>
         </nav>
 
@@ -257,6 +259,50 @@
             <div id="serverUploadStatus" style="margin-top:10px;"></div>
             <div id="uploadResults" style="margin-top: 20px;"></div>
           </div>
+
+          <!-- Bullhorn Sync Page -->
+          <div id="bullhornPage" class="page">
+            <h2 style="margin-bottom: 20px;">Bullhorn API Sync</h2>
+            
+            <!-- Connection Test Section -->
+            <div style="margin-bottom: 30px; padding: 20px; background: var(--light-gray); border-radius: 8px;">
+              <h4 style="margin-bottom: 15px;">API Connection</h4>
+              <button class="btn btn-primary" id="testConnectionBtn">Test Connection</button>
+              <button class="btn btn-success" id="getSummaryBtn" style="margin-left: 10px;">Get Data Summary</button>
+              <div id="connectionStatus" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Sync Configuration -->
+            <div style="margin-bottom: 30px; padding: 20px; background: var(--light-gray); border-radius: 8px;">
+              <h4 style="margin-bottom: 15px;">Sync Configuration</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                  <label for="syncStartDate" style="display: block; margin-bottom: 5px; font-weight: 500;">Start Date:</label>
+                  <input type="date" id="syncStartDate" style="width: 100%;" />
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 5px; font-weight: 500;">Include TOA Data:</label>
+                  <input type="checkbox" id="includeTOA" checked style="margin-right: 8px;" />
+                  <label for="includeTOA">Time on Assignment</label>
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 5px; font-weight: 500;">Include Permanent:</label>
+                  <input type="checkbox" id="includePermanent" checked style="margin-right: 8px;" />
+                  <label for="includePermanent">Permanent Placements</label>
+                </div>
+              </div>
+              <button class="btn btn-success" id="syncBullhornBtn">Sync Data from Bullhorn</button>
+              <div id="syncStatus" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Sync Summary -->
+            <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid var(--border-gray);">
+              <h4 style="margin-bottom: 15px;">Sync Summary</h4>
+              <div id="syncSummary">
+                <p style="color: #666;">Click "Get Data Summary" to see available Bullhorn data.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -314,7 +360,7 @@
     }
 
     // ===== Utilities =====
-    const fmtMoney = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fmtMoney = (n) => `${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const toTitle = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
     const today = new Date();
     const currentMonthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(today);
@@ -393,9 +439,11 @@
       if (user.role === 'admin' || user.role === 'manager') {
         document.getElementById('employeeNav').classList.remove('hidden');
         document.getElementById('uploadNav').classList.remove('hidden');
+        document.getElementById('bullhornNav').classList.remove('hidden');
       } else {
         document.getElementById('employeeNav').classList.add('hidden');
         document.getElementById('uploadNav').classList.add('hidden');
+        document.getElementById('bullhornNav').classList.add('hidden');
       }
       loadData();
     }
@@ -424,6 +472,13 @@
       if (pageId === 'ytd') updateYTD();
       if (pageId === 'placements') updatePlacements();
       if (pageId === 'employees') updateEmployees();
+      if (pageId === 'bullhorn') {
+        // Auto-load summary when opening Bullhorn page
+        setTimeout(() => {
+          const summaryBtn = document.getElementById('getSummaryBtn');
+          if (summaryBtn) summaryBtn.click();
+        }, 500);
+      }
       if (currentUser) refreshFromServer();
     }
 
@@ -579,6 +634,195 @@
       }
     }
 
+    // ===== Bullhorn API Functions =====
+    
+    // Test Bullhorn API connection
+    async function testBullhornConnection() {
+      if (!currentUser) { 
+        alert('Please sign in first.'); 
+        return; 
+      }
+      
+      const status = document.getElementById('connectionStatus');
+      const btn = document.getElementById('testConnectionBtn');
+      
+      btn.disabled = true;
+      btn.textContent = 'Testing...';
+      status.innerHTML = '<div style="color: #666;">Testing connection...</div>';
+      
+      try {
+        const response = await fetch('/api/test-bullhorn', {
+          method: 'GET',
+          credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          status.innerHTML = `
+            <div style="color: green; padding: 10px; background: #f0f9ff; border-radius: 4px;">
+              <strong>✓ Connection Successful</strong><br>
+              Connected to: ${data.rest_url || 'Bullhorn API'}
+            </div>`;
+        } else {
+          status.innerHTML = `
+            <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
+              <strong>✗ Connection Failed</strong><br>
+              ${data.error || 'Unknown error'}
+            </div>`;
+        }
+      } catch (error) {
+        status.innerHTML = `
+          <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
+            <strong>✗ Connection Error</strong><br>
+            ${error.message}
+          </div>`;
+      }
+      
+      btn.disabled = false;
+      btn.textContent = 'Test Connection';
+    }
+
+    // Get Bullhorn data summary
+    async function getBullhornSummary() {
+      if (!currentUser) { 
+        alert('Please sign in first.'); 
+        return; 
+      }
+      
+      const summary = document.getElementById('syncSummary');
+      const btn = document.getElementById('getSummaryBtn');
+      
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      summary.innerHTML = '<div style="color: #666;">Getting data summary...</div>';
+      
+      try {
+        const response = await fetch('/api/bullhorn-summary', {
+          method: 'GET',
+          credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const summaryData = data.summary;
+          summary.innerHTML = `
+            <div style="padding: 15px; background: #f0f9ff; border-radius: 4px;">
+              <h5 style="margin-bottom: 10px; color: var(--indigo);">Available Bullhorn Data</h5>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                  <div style="font-size: 24px; font-weight: 600; color: var(--aegean);">
+                    ${summaryData.permanent_placements_ytd?.toLocaleString() || '0'}
+                  </div>
+                  <div style="color: #666; font-size: 14px;">Permanent Placements (YTD)</div>
+                </div>
+                <div>
+                  <div style="font-size: 24px; font-weight: 600; color: var(--aegean);">
+                    ${summaryData.toa_records_current_month?.toLocaleString() || '0'}
+                  </div>
+                  <div style="color: #666; font-size: 14px;">TOA Records (Current Month)</div>
+                </div>
+              </div>
+            </div>`;
+        } else {
+          summary.innerHTML = `
+            <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
+              <strong>Error:</strong> ${data.error || 'Failed to get summary'}
+            </div>`;
+        }
+      } catch (error) {
+        summary.innerHTML = `
+          <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
+            <strong>Error:</strong> ${error.message}
+          </div>`;
+      }
+      
+      btn.disabled = false;
+      btn.textContent = 'Get Data Summary';
+    }
+
+    // Sync data from Bullhorn
+    async function syncBullhornData() {
+      if (!currentUser) { 
+        alert('Please sign in first.'); 
+        return; 
+      }
+      
+      const startDate = document.getElementById('syncStartDate').value;
+      const includeTOA = document.getElementById('includeTOA').checked;
+      const includePermanent = document.getElementById('includePermanent').checked;
+      
+      if (!includeTOA && !includePermanent) {
+        alert('Please select at least one data type to sync.');
+        return;
+      }
+      
+      const status = document.getElementById('syncStatus');
+      const btn = document.getElementById('syncBullhornBtn');
+      
+      btn.disabled = true;
+      btn.textContent = 'Syncing...';
+      status.innerHTML = '<div style="color: #666;">Syncing data from Bullhorn API...</div>';
+      
+      try {
+        const requestBody = {
+          include_toa: includeTOA,
+          include_permanent: includePermanent
+        };
+        
+        if (startDate) {
+          requestBody.start_date = startDate;
+        }
+        
+        const response = await fetch('/api/sync-bullhorn', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          status.innerHTML = `
+            <div style="color: green; padding: 15px; background: #f0f9ff; border-radius: 4px;">
+              <strong>✓ Sync Completed Successfully</strong><br>
+              Processed: ${data.processed} records<br>
+              Total fetched: ${data.total_fetched} records<br>
+              <small>Data has been added to your commission portal.</small>
+            </div>`;
+          
+          // Refresh the current page data
+          await refreshFromServer();
+          if (document.getElementById('currentPage').classList.contains('active')) {
+            updateCurrentMonth();
+          }
+          
+          // Also refresh the summary
+          getBullhornSummary();
+          
+        } else {
+          status.innerHTML = `
+            <div style="color: crimson; padding: 15px; background: #fff5f5; border-radius: 4px;">
+              <strong>✗ Sync Failed</strong><br>
+              ${data.error || 'Unknown error occurred'}
+            </div>`;
+        }
+      } catch (error) {
+        status.innerHTML = `
+          <div style="color: crimson; padding: 15px; background: #fff5f5; border-radius: 4px;">
+            <strong>✗ Sync Error</strong><br>
+            ${error.message}
+          </div>`;
+      }
+      
+      btn.disabled = false;
+      btn.textContent = 'Sync Data from Bullhorn';
+    }
+
     // ===== Client-side CSV/XLSX parsing (optional demo) =====
     const dropArea = document.getElementById('dropArea');
     function handleFiles(files) {
@@ -650,6 +894,13 @@
 
     // ===== Events =====
     document.addEventListener('DOMContentLoaded', () => {
+      // Set default start date to beginning of current year
+      const startDateInput = document.getElementById('syncStartDate');
+      if (startDateInput) {
+        const currentYear = new Date().getFullYear();
+        startDateInput.value = `${currentYear}-01-01`;
+      }
+
       // Sign in
       document.getElementById('loginBtn').addEventListener('click', async () => {
         const u = document.getElementById('loginUsername').value;
@@ -710,6 +961,11 @@
         document.getElementById('newEmployeePassword').value = pwd;
         alert(`Generated password: ${pwd}`);
       });
+
+      // Bullhorn API Event Listeners
+      document.getElementById('testConnectionBtn').addEventListener('click', testBullhornConnection);
+      document.getElementById('getSummaryBtn').addEventListener('click', getBullhornSummary);
+      document.getElementById('syncBullhornBtn').addEventListener('click', syncBullhornData);
 
       // Upload: click or drag & drop (client demo)
       const fi = document.getElementById('fileInput');

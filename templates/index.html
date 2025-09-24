@@ -249,7 +249,7 @@
               <p>Supports CSV and Excel files</p>
               <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls" style="display: none;" />
             </div>
-            <!-- NEW: server-side upload (persists across browsers) -->
+            <!-- server-side upload (persists across browsers) -->
             <form id="serverUploadForm" enctype="multipart/form-data" style="margin-top: 12px;">
               <input type="file" id="serverFile" name="file" accept=".csv,.xlsx,.xls" required />
               <button type="submit" class="btn btn-primary" style="margin-left:10px;">Submit</button>
@@ -263,11 +263,10 @@
   </div>
 
   <script>
-    // ===== Optional Azure sync (unused unless you fill in the BASE) =====
+    // ===== Optional Azure sync (unused unless you fill in BASE) =====
     const AZURE_API_BASE = ""; // e.g. https://<your-func-app>.azurewebsites.net
-    const AZURE_API_KEY  = ""; // optional function key
+    const AZURE_API_KEY  = ""; // optional
     const ENABLE_AZURE_CLOUD = AZURE_API_BASE && AZURE_API_BASE.length > 0;
-
     async function azureLoadState(userKey){
       if(!ENABLE_AZURE_CLOUD) return null;
       try{
@@ -286,53 +285,30 @@
           headers:{ 'Content-Type':'application/json', ...(AZURE_API_KEY?{"x-functions-key":AZURE_API_KEY}:{}) },
           body: JSON.stringify({ employees: state.employees, placements: state.placements, updatedAt: new Date().toISOString() })
         });
-      }catch(e){ /* ignore */ }
+      }catch(e){}
     }
-    // debounce helper
     function debounce(fn, ms=400){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
     const azureSaveDebounced = debounce(azureSaveState, 600);
 
-    // ===== Global State (local) =====
+    // ===== Global State (local cache) =====
     const STORAGE_KEYS = { EMPLOYEES: 'cp_employees_v1', PLACEMENTS: 'cp_placements_v1' };
     let currentUser = null;
-
-    const defaultEmployees = [
-      { name: 'Pam Henard', email: 'pam@company.com', username: 'phenard', password: 'temp123', role: 'employee', jobFunction: 'recruiter', status: 'Active' },
-      { name: 'Sarah Johnson', email: 'sarah@company.com', username: 'sjohnson', password: 'secure789', role: 'manager', jobFunction: 'both', status: 'Active' },
-      { name: 'Administrator', email: 'admin@company.com', username: 'admin', password: 'admin123', role: 'admin', jobFunction: 'admin', status: 'Active' }
-    ];
-
-    const defaultPlacements = [
+    let employeeList = [];
+    let placementsData = [
       { id: 'PL001', date: '2025-08-03', employee: 'Pam Henard', client: 'Ajax Building Company', hours: 52, revenue: 3900, gp: 336.96, commission: 33.70, status: 'Active' }
     ];
-
-    const defaultCurrentMonthData = [
-      { employee: 'Pam Henard', client: 'Ajax Building Company', status: 'New', gp: 336.96, hourlyGP: 6.48, rate: '10.00%', commission: 33.70, month: 'August', day: 3 },
-      { employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, rate: '9.75%', commission: 11.49, month: 'August', day: 3 }
-    ];
-
+    let currentMonthData = [];
     const defaultYTD = [
       { employee: 'Pam Henard', month: 'January', contractRevenue: '0', directHire: '250', paraHire: '', gp: '23,617.80', commission: '1,078.51' },
       { employee: 'Pam Henard', month: 'February', contractRevenue: '0', directHire: '', paraHire: '', gp: '30,500.79', commission: '1,458.80' }
     ];
 
-    function saveToStorage(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
-    function loadFromStorage(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
-
-    let employeeList   = loadFromStorage(STORAGE_KEYS.EMPLOYEES, defaultEmployees);
-    let placementsData = loadFromStorage(STORAGE_KEYS.PLACEMENTS, defaultPlacements);
-    let currentMonthData = [...defaultCurrentMonthData];
-    let ytdData = [...defaultYTD];
-
-    function persistAllLocally() {
+    function saveToStorage(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+    function loadFromStorage(k, fb){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
+    function persistAll(){
       saveToStorage(STORAGE_KEYS.EMPLOYEES, employeeList);
       saveToStorage(STORAGE_KEYS.PLACEMENTS, placementsData);
-    }
-    function persistAll() {
-      // save to localStorage
-      persistAllLocally();
-      // optionally push to Azure Functions if configured
-      if (currentUser && ENABLE_AZURE_CLOUD) {
+      if(currentUser && ENABLE_AZURE_CLOUD){
         azureSaveDebounced(currentUser.username, { employees: employeeList, placements: placementsData });
       }
     }
@@ -343,7 +319,7 @@
     const today = new Date();
     const currentMonthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(today);
 
-    // ===== Server fetchers =====
+    // ===== Server API helpers =====
     async function serverLogin(username, password) {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -354,29 +330,25 @@
       if (!res.ok) throw new Error(`Login failed (${res.status})`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Invalid credentials');
-      return data.user; // { name, role, username }
+      return data.user;
     }
-
     async function serverLogout() {
       await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
     }
-
     async function fetchEmployees() {
       try {
         const res = await fetch('/api/employees', { credentials: 'same-origin' });
         if (!res.ok) return;
         const rows = await res.json();
-        // Convert server fields to front-end structure
         employeeList = rows.map(e => ({
-          name: e.name, email: e.email, username: e.username,
+          id: e.id, name: e.name, email: e.email, username: e.username,
           role: e.role, jobFunction: e.job_function, status: e.status
         }));
         persistAll();
         updateEmployees();
         populateEmployeeSelector();
-      } catch(_) {}
+      } catch (_) {}
     }
-
     async function refreshFromServer() {
       try {
         const res = await fetch('/api/commission-data', { credentials: 'same-origin' });
@@ -384,19 +356,31 @@
         const rows = await res.json();
         if (Array.isArray(rows)) {
           currentMonthData = rows.map((r) => ({
-            employee: r.employee,
-            client: r.client,
-            status: r.status || 'New',
-            gp: Number(r.gp) || 0,
-            hourlyGP: Number(r.hourly_gp) || 0,
-            rate: r.commission_rate || '',
-            commission: Number(r.commission) || 0,
-            month: r.month || '',
-            day: r.day || ''
+            employee: r.employee, client: r.client, status: r.status || 'New',
+            gp: Number(r.gp) || 0, hourlyGP: Number(r.hourly_gp) || 0,
+            rate: r.commission_rate || '', commission: Number(r.commission) || 0,
+            month: r.month || '', day: r.day || ''
           }));
           updateCurrentMonth();
         }
-      } catch (_) { /* ignore offline */ }
+      } catch (_) {}
+    }
+    async function deleteEmployeeById(id, name){
+      if (!currentUser) { alert('Please sign in first.'); return; }
+      if (!id) { alert('Missing employee id'); return; }
+      if (!confirm(`Remove ${name || 'this employee'}?`)) return;
+      try{
+        const res = await fetch(`/api/employees/${id}`, { method:'DELETE', credentials:'same-origin' });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok || data.success === false) {
+          alert(`Delete failed: ${data.error || res.statusText}`);
+          return;
+        }
+        await fetchEmployees();
+        alert('Employee removed');
+      }catch(err){
+        alert(`Delete error: ${String(err)}`);
+      }
     }
 
     // ===== Login/Logout UI =====
@@ -415,14 +399,12 @@
       }
       loadData();
     }
-
     function loadData() {
       document.getElementById('currentMonthLabel').textContent = currentMonthLabel;
       populateEmployeeSelector();
       populateMonthSelector();
       updateCurrentMonth();
     }
-
     function logoutUI() {
       currentUser = null;
       document.getElementById('mainApp').classList.add('hidden');
@@ -442,7 +424,6 @@
       if (pageId === 'ytd') updateYTD();
       if (pageId === 'placements') updatePlacements();
       if (pageId === 'employees') updateEmployees();
-      // always refresh from server when changing pages (if logged in)
       if (currentUser) refreshFromServer();
     }
 
@@ -503,7 +484,6 @@
         <td>${totalCommission.toFixed(2)}</td><td></td><td></td>`;
       tbody.appendChild(totalRow);
     }
-
     function updateYTD() {
       const tbody = document.getElementById('ytdTable');
       tbody.innerHTML = '';
@@ -520,7 +500,6 @@
         tbody.appendChild(tr);
       });
     }
-
     function updateSummary() {
       const monthVal = document.getElementById('monthSelector').value;
       const employeeVal = document.getElementById('employeeSelector').value;
@@ -551,7 +530,6 @@
         </div>`;
       document.getElementById('summaryContent').innerHTML = html;
     }
-
     function updatePlacements(list = placementsData) {
       const tbody = document.getElementById('placementsTable');
       tbody.innerHTML = '';
@@ -575,8 +553,33 @@
         tbody.appendChild(tr);
       }
     }
+    function updateEmployees() {
+      const tbody = document.getElementById('employeesTable');
+      tbody.innerHTML = '';
+      employeeList.forEach((emp) => {
+        const badgeClass = emp.role === 'admin' ? 'badge-admin' : emp.role === 'manager' ? 'badge-manager' : 'badge-employee';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${emp.name}</td>
+          <td>${emp.email}</td>
+          <td><span class="kbd">${emp.username}</span></td>
+          <td><span class="badge ${badgeClass}">${emp.role.toUpperCase()}</span></td>
+          <td>${toTitle(emp.jobFunction)}</td>
+          <td><span class="badge badge-employee">${emp.status}</span></td>
+          <td>
+            <button class="btn btn-primary employee-edit-btn" data-id="${emp.id ?? ''}" data-name="${emp.name}" style="padding:4px 8px;font-size:12px;margin-right:5px;">Edit</button>
+            <button class="btn btn-danger employee-remove-btn" data-id="${emp.id ?? ''}" data-name="${emp.name}" style="padding:4px 8px;font-size:12px;">Remove</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      if (!employeeList.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="7" style="text-align:center;color:#6c757d;">No employees.</td>`;
+        tbody.appendChild(tr);
+      }
+    }
 
-    // ===== Client-side CSV/XLSX parsing (optional) =====
+    // ===== Client-side CSV/XLSX parsing (optional demo) =====
     const dropArea = document.getElementById('dropArea');
     function handleFiles(files) {
       const out = document.getElementById('uploadResults');
@@ -611,10 +614,10 @@
         else reader.readAsArrayBuffer(file);
       });
     }
-
     function csvToRows(text) {
-      const [headerLine, ...lines] = text.split(/\r?\n/).filter(Boolean);
-      const headers = headerLine.split(',').map((h) => h.trim());
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
+      if (!lines.length) return [];
+      const headers = lines.shift().split(',').map((h) => h.trim());
       return lines.map((line) => {
         const cells = line.split(',');
         const obj = {};
@@ -622,12 +625,12 @@
         return obj;
       });
     }
-
     function mapRowsToPlacements(rows) {
       const out = [];
       rows.forEach((r, i) => {
         const id = r.ID || r.Id || r.id || r["Placement ID"] || `UPL-${Date.now()}-${i}`;
-        const date = (r.Date || r.date || r["Start Date"] || r["WE Date"]) || new Date().toISOString().slice(0,10);
+        const dateRaw = (r.Date || r.date || r["Start Date"] || r["End Date"] || r["Placement Date"] || r["Week Ending"] || r["WE Date"]);
+        const date = dateRaw ? String(dateRaw).slice(0,10) : new Date().toISOString().slice(0,10);
         const employee = r.Employee || r["Employee Name"] || r.employee || r.Recruiter || 'Unknown';
         const client = r.Client || r["Client Name"] || r.client || r.Customer || 'Unknown';
         const hours = Number(r.Hours || r["Total Hours"] || r.hours || 0);
@@ -635,11 +638,10 @@
         const gp = Number(r.GP || r["Gross Profit"] || r.gp || 0);
         const commission = Number(r.Commission || r.commission || 0);
         const status = r.Status || r.status || 'Active';
-        out.push({ id, date: String(date).slice(0,10), employee, client, hours, revenue, gp, commission, status });
+        out.push({ id, date, employee, client, hours, revenue, gp, commission, status });
       });
       return out;
     }
-
     function mergePlacements(existing, incoming) {
       const byId = new Map(existing.map((p) => [p.id, p]));
       incoming.forEach((p) => { byId.set(p.id, { ...byId.get(p.id), ...p }); });
@@ -648,25 +650,18 @@
 
     // ===== Events =====
     document.addEventListener('DOMContentLoaded', () => {
-      // Sign in (server-backed)
+      // Sign in
       document.getElementById('loginBtn').addEventListener('click', async () => {
         const u = document.getElementById('loginUsername').value;
         const p = document.getElementById('loginPassword').value;
         try {
-          // authenticate with Flask to set session cookie
           const user = await serverLogin(u, p);
           showAppFor(user);
-          // Optionally, also load Azure cloud state for this username
-          if (ENABLE_AZURE_CLOUD) {
-            try {
-              const cloud = await azureLoadState(u);
-              if (cloud && Array.isArray(cloud.employees) && Array.isArray(cloud.placements)) {
-                employeeList = cloud.employees; placementsData = cloud.placements; persistAll();
-              } else {
-                azureSaveDebounced(u, { employees: employeeList, placements: placementsData });
-              }
-            } catch(_) {}
-          }
+          try {
+            const cloud = await azureLoadState(u);
+            if (cloud && Array.isArray(cloud.employees)) employeeList = cloud.employees;
+            if (cloud && Array.isArray(cloud.placements)) placementsData = cloud.placements;
+          } catch(_) {}
           await fetchEmployees();
           await refreshFromServer();
         } catch (err) {
@@ -680,48 +675,34 @@
         document.getElementById('loginBtn').click();
       }));
 
-      // Logout (server + UI)
+      // Logout
       document.getElementById('logoutBtn').addEventListener('click', async () => {
         try { await serverLogout(); } catch(_) {}
         logoutUI();
       });
 
-      // Nav (click + keyboard)
+      // Nav
       document.getElementById('navList').addEventListener('click', (e) => {
         const li = e.target.closest('.nav-item');
         if (!li) return;
         setActivePage(li.dataset.page);
       });
-      document.getElementById('navList').addEventListener('keydown', (e) => {
-        if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('nav-item')) {
-          setActivePage(e.target.dataset.page);
-          e.preventDefault();
-        }
-      });
-
-      // Summary Update
       document.getElementById('summaryUpdateBtn').addEventListener('click', updateSummary);
 
-      // Search with debounce
-      document.getElementById('searchBtn').addEventListener('click', () => filterPlacements());
-      document.getElementById('clearBtn').addEventListener('click', () => { clearSearch(); });
-      let debTimer; document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debTimer); debTimer = setTimeout(filterPlacements, 250); });
-
-      // Employee table buttons (event delegation)
+      // Employees (persistent ADD + DELETE)
+      document.getElementById('addEmployeeBtn').addEventListener('click', addEmployee);
       document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('employee-edit-btn')) {
-          const idx = parseInt(e.target.getAttribute('data-index')); /* editing only affects local demo list */
-          alert('Employee editing in this UI is local-only.\nUse the server API for persistent updates.');
-        }
         if (e.target.classList.contains('employee-remove-btn')) {
-          alert('Employee removal in this UI is local-only.\nUse the server API for persistent updates.');
+          const id = e.target.getAttribute('data-id');
+          const name = e.target.getAttribute('data-name');
+          deleteEmployeeById(id, name);
+        }
+        if (e.target.classList.contains('employee-edit-btn')) {
+          alert('Edit wiring can be added similarly (PUT/PATCH).');
         }
       });
 
-      // Add employee (local demo only)
-      document.getElementById('addEmployeeBtn').addEventListener('click', () => {
-        alert('Add Employee here is local-only.\nPOST to /api/employees for persistent changes.');
-      });
+      // Password generator
       document.getElementById('genPassBtn').addEventListener('click', () => {
         const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
         let pwd = '';
@@ -730,46 +711,76 @@
         alert(`Generated password: ${pwd}`);
       });
 
-      // Upload: click or drag & drop (client-side parsing)
+      // Upload: click or drag & drop (client demo)
       const fi = document.getElementById('fileInput');
-      const dropArea = document.getElementById('dropArea');
       dropArea.addEventListener('click', () => fi.click());
       fi.addEventListener('change', (e) => handleFiles(e.target.files));
       ;['dragenter','dragover'].forEach((ev) => dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.style.background = '#f0f9ff'; }));
       ;['dragleave','drop'].forEach((ev) => dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.style.background = 'transparent'; }));
       dropArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
 
-      // Server upload form -> POST /api/upload with session cookie
+      // Server upload form -> POST /api/upload
       const serverForm = document.getElementById('serverUploadForm');
-      if (serverForm) {
-        serverForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          if (!currentUser) { alert('Please sign in first.'); return; }
-          const inp = document.getElementById('serverFile');
-          if (!inp.files.length) { alert('Choose a file'); return; }
-          const fd = new FormData();
-          fd.append('file', inp.files[0]);
-          const status = document.getElementById('serverUploadStatus');
-          status.textContent = 'Uploading...';
-          status.style.color = '';
-          try {
-            const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
-            const data = await res.json().catch(()=> ({}));
-            if (!res.ok || data.success === false) {
-              status.textContent = `Upload failed: ${data.error || res.statusText}`;
-              status.style.color = 'crimson';
-              return;
-            }
-            status.textContent = `Uploaded OK. Processed rows: ${data.processed || 0}`;
-            status.style.color = 'green';
-            await refreshFromServer();
-          } catch (err) {
-            status.textContent = `Upload error: ${String(err)}`;
-            status.style.color = 'crimson';
+      serverForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser) { alert('Please sign in first.'); return; }
+        const inp = document.getElementById('serverFile');
+        if (!inp.files.length) { alert('Choose a file'); return; }
+        const fd = new FormData(); fd.append('file', inp.files[0]);
+        const status = document.getElementById('serverUploadStatus');
+        status.textContent = 'Uploading...'; status.style.color = '';
+        try {
+          const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
+          const data = await res.json().catch(()=> ({}));
+          if (!res.ok || data.success === false) {
+            status.textContent = `Upload failed: ${data.error || res.statusText}`; status.style.color = 'crimson'; return;
           }
-        });
-      }
+          status.textContent = `Uploaded OK. Processed rows: ${data.processed || 0}`; status.style.color = 'green';
+          await refreshFromServer();
+          setActivePage('current');
+        } catch (err) {
+          status.textContent = `Upload error: ${String(err)}`; status.style.color = 'crimson';
+        }
+      });
     });
+
+    // Persistent ADD
+    async function addEmployee() {
+      const name = document.getElementById('newEmployeeName').value.trim();
+      const email = document.getElementById('newEmployeeEmail').value.trim();
+      const username = document.getElementById('newEmployeeUsername').value.trim();
+      const password = document.getElementById('newEmployeePassword').value.trim();
+      const role = document.getElementById('newEmployeeRole').value;
+      const jobFunction = document.getElementById('newEmployeeJobFunction').value;
+
+      if (!name || !email || !username || !password) { alert('Please fill in all fields'); return; }
+      if (!email.includes('@')) { alert('Please enter a valid email address'); return; }
+      if (password.length < 8) { alert('Password must be at least 8 characters long'); return; }
+      if (!currentUser) { alert('Please sign in first.'); return; }
+
+      try {
+        const res = await fetch('/api/employees', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, username, password, role, job_function: jobFunction })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) {
+          alert(`Add failed: ${data.error || res.statusText}`); return;
+        }
+        document.getElementById('newEmployeeName').value = '';
+        document.getElementById('newEmployeeEmail').value = '';
+        document.getElementById('newEmployeeUsername').value = '';
+        document.getElementById('newEmployeePassword').value = '';
+        document.getElementById('newEmployeeRole').value = 'employee';
+        document.getElementById('newEmployeeJobFunction').value = 'recruiter';
+        await fetchEmployees();
+        alert(`Employee "${name}" added successfully with ${role} access level`);
+      } catch (err) {
+        alert(`Error adding employee: ${String(err)}`);
+      }
+    }
   </script>
 </body>
 </html>

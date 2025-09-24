@@ -49,6 +49,69 @@ class CommissionData(db.Model):
     month = db.Column(db.String(20))
     day = db.Column(db.Integer)
 
+# ================= Helpers =================
+
+def _first_match(row_map, candidates):
+    """Return first non-empty value by scanning row_map (lowercased headers -> values)."""
+    for key in candidates:
+        if key in row_map:
+            val = row_map.get(key, "")
+            if pd.notna(val) and str(val).strip() != "":
+                return val
+    return None
+
+def _parse_date(value):
+    """Parse many date shapes (strings, pandas timestamps, Excel serials)."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    # pandas Timestamp
+    if isinstance(value, (pd.Timestamp, )):
+        return value.to_pydatetime()
+    # Excel serial (rough bounds)
+    if isinstance(value, (int, float)) and 20000 < float(value) < 60000:
+        base = pd.Timestamp('1899-12-30')
+        try:
+            return (base + pd.Timedelta(days=float(value))).to_pydatetime()
+        except Exception:
+            pass
+    # generic
+    try:
+        dt = pd.to_datetime(value, errors='coerce', infer_datetime_format=True, utc=False)
+        if pd.notna(dt):
+            # If it's a Series/Index, take first
+            if isinstance(dt, (pd.Series, pd.Index)):
+                dt = dt.iloc[0]
+            return dt.to_pydatetime()
+    except Exception:
+        return None
+    return None
+
+def _infer_commission_rate(status, gp, provided_rate):
+    """
+    Returns (rate_str, rate_float). Priority:
+    1) provided_rate in file (like '9.75%')
+    2) status-based: if contains 'enterprise' -> 9.75%, else 10.00%
+    """
+    # Provided explicit rate like '9.75%' or '0.0975'
+    if provided_rate:
+        s = str(provided_rate).strip()
+        try:
+            if s.endswith('%'):
+                rf = float(s.rstrip('%')) / 100.0
+                return f"{(rf*100):.2f}%", rf
+            else:
+                rf = float(s)
+                if rf > 1:  # looks like 9.75 not 0.0975
+                    rf = rf / 100.0
+                return f"{(rf*100):.2f}%", rf
+        except Exception:
+            pass
+    # Status-based default
+    st = (status or "").lower()
+    if "enterprise" in st:
+        return "9.75%", 0.0975
+    return "10.00%", 0.10
+
 # ================= Routes =================
 @app.route('/')
 def index():
@@ -104,7 +167,7 @@ def get_employees():
 
 @app.route('/api/employees', methods=['POST'])
 def add_employee():
-    if 'user_id' not in session:
+    if 'user_id' not in session':
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
@@ -157,7 +220,7 @@ def get_commission_data():
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
-    commission_data = CommissionData.query.all()
+    commission_data = CommissionData.query.order_by(CommissionData.id.desc()).all()
     if session.get('role') == 'employee':
         commission_data = [cd for cd in commission_data if cd.employee_name == session.get('name')]
 
@@ -200,44 +263,70 @@ def upload_file():
         elif filename.endswith('.xlsx'):
             df = pd.read_excel(saved_path, engine='openpyxl')
         elif filename.endswith('.xls'):
-            # Only if xlrd==1.2.0 is installed
             import xlrd  # noqa: F401
             df = pd.read_excel(saved_path, engine='xlrd')
         else:
             return jsonify({'success': False, 'error': 'Unsupported file format'})
 
-        df = df.fillna('')
+        # Normalize columns to lowercase once for easier scanning
+        lower_cols = [str(c).strip().lower() for c in df.columns]
+        df.columns = lower_cols
+
+        # Candidate header sets
+        CLIENT_COLS = ['client', 'client name', 'customer', 'company', 'account']
+        GP_COLS = ['gp', 'gross profit', 'profit', 'gp amount']
+        EMP_COLS = ['employee', 'employee name', 'recruiter', 'sales', 'sales rep', 'owner', 'consultant']
+        HOURS_COLS = ['hours', 'total hours', 'hours worked']
+        STATUS_COLS = ['status', 'sales status', 'placement status']
+        RATE_COLS = ['commission rate', 'rate', 'comm rate']
+        DATE_COLS = ['date', 'placement date', 'start date', 'we date', 'week ending', 'invoice date', 'bill date']
 
         processed_count = 0
+
         for _, row in df.iterrows():
-            client = None
-            gp = None
-            employee_name = None
+            # Build a row map: header -> value
+            row_map = {col: row[col] for col in df.columns}
 
-            for col in df.columns:
-                col_lower = str(col).lower()
-                if 'client' in col_lower and not client:
-                    client = row[col]
-                elif any(term in col_lower for term in ['gp', 'gross profit', 'profit']) and gp is None:
-                    gp = pd.to_numeric(row[col], errors='coerce')
-                elif any(term in col_lower for term in ['employee', 'name', 'recruiter', 'sales']) and not employee_name:
-                    employee_name = row[col]
+            client = _first_match(row_map, CLIENT_COLS)
+            gp_val = _first_match(row_map, GP_COLS)
+            employee_name = _first_match(row_map, EMP_COLS)
+            hours_val = _first_match(row_map, HOURS_COLS)
+            status_val = _first_match(row_map, STATUS_COLS)
+            provided_rate = _first_match(row_map, RATE_COLS)
 
+            # Commission date (month/day) from the first date-like column found
+            date_val = _first_match(row_map, DATE_COLS)
+            dt = _parse_date(date_val)
+            if dt is None:
+                month_name = 'Current'
+                day_num = 1
+            else:
+                month_name = dt.strftime('%B')
+                day_num = int(dt.day)
+
+            # Coerce GP numeric
+            gp = pd.to_numeric(gp_val, errors='coerce') if gp_val is not None else None
             if client and employee_name and gp is not None and not pd.isna(gp):
-                commission_rate = '5.00%'
-                commission = float(gp) * 0.05
-                hourly_gp = float(gp) / 40.0
+                # calculate hours, hourly_gp
+                hours = pd.to_numeric(hours_val, errors='coerce') if hours_val is not None else None
+                if hours is None or pd.isna(hours) or float(hours) <= 0:
+                    hours = 40.0
+                hourly_gp = float(gp) / float(hours)
+
+                # commission rate
+                rate_str, rate_float = _infer_commission_rate(status_val, gp, provided_rate)
+                commission_amt = round(float(gp) * rate_float, 2)
 
                 commission_data = CommissionData(
                     employee_name=str(employee_name),
                     client=str(client),
-                    status='New',
+                    status=str(status_val) if status_val else 'New',
                     gp=float(gp),
-                    hourly_gp=hourly_gp,
-                    commission_rate=commission_rate,
-                    commission=commission,
-                    month='Current',
-                    day=1
+                    hourly_gp=round(hourly_gp, 2),
+                    commission_rate=rate_str,
+                    commission=commission_amt,
+                    month=month_name,
+                    day=day_num
                 )
                 db.session.add(commission_data)
                 processed_count += 1

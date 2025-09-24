@@ -167,7 +167,7 @@ def get_employees():
 
 @app.route('/api/employees', methods=['POST'])
 def add_employee():
-    if 'user_id' not in session':
+    if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403

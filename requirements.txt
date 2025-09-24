@@ -1,4 +1,11 @@
-Flask==2.3.2
-Flask-SQLAlchemy==3.0.5
-pandas==2.0.3
-openpyxl==3.1.2
+# web
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+gunicorn==23.0.0
+
+# data (pin to avoid NumPy 2.x ABI issues)
+numpy==1.26.4
+pandas==2.2.2
+openpyxl==3.1.5     # read .xlsx
+# Only add the next line if you truly need legacy .xls support:
+# xlrd==1.2.0

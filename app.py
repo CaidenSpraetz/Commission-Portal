@@ -1,19 +1,23 @@
 from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import hashlib
 import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
 # Import Bullhorn API module
-from bullhorn_api import get_bullhorn_commission_data, BullhornAPI
+try:
+    from bullhorn_api import get_bullhorn_commission_data, BullhornAPI
+    BULLHORN_AVAILABLE = True
+except ImportError:
+    BULLHORN_AVAILABLE = False
+    print("Warning: Bullhorn API module not available")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'commission-portal-secret-key')
 
 # ================= Persisted SQLite on Azure Linux App Service =================
-# Anything under /home persists across restarts; /home/site/wwwroot is safe
 DATA_DIR = os.environ.get('DATA_DIR', '/home/site/wwwroot')
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -55,12 +59,26 @@ class CommissionData(db.Model):
 
 # ================= Password Security Helpers =================
 def hash_password(password):
-    """Hash password securely"""
-    return generate_password_hash(password, method='pbkdf2:sha256')
+    """Hash password - try bcrypt first, fallback to SHA256"""
+    try:
+        from werkzeug.security import generate_password_hash
+        return generate_password_hash(password, method='pbkdf2:sha256')
+    except ImportError:
+        # Fallback to SHA256 if werkzeug not available
+        return hashlib.sha256(password.encode()).hexdigest()
 
 def verify_password(password, hash):
-    """Verify password against hash"""
-    return check_password_hash(hash, password)
+    """Verify password against hash - try multiple methods"""
+    try:
+        from werkzeug.security import check_password_hash
+        if check_password_hash(hash, password):
+            return True
+    except ImportError:
+        pass
+    
+    # Fallback: check SHA256
+    sha256_hash = hashlib.sha256(password.encode()).hexdigest()
+    return hash == sha256_hash
 
 # ================= Existing Helpers =================
 def _first_match(row_map, candidates):
@@ -352,6 +370,9 @@ def upload_file():
 @app.route('/api/sync-bullhorn', methods=['POST'])
 def sync_bullhorn_data():
     """Sync commission data from Bullhorn API"""
+    if not BULLHORN_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
+    
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
@@ -419,6 +440,9 @@ def sync_bullhorn_data():
 @app.route('/api/test-bullhorn', methods=['GET'])
 def test_bullhorn_connection():
     """Test Bullhorn API connection"""
+    if not BULLHORN_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
+    
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
@@ -446,6 +470,9 @@ def test_bullhorn_connection():
 @app.route('/api/bullhorn-summary', methods=['GET'])
 def get_bullhorn_summary():
     """Get summary of available Bullhorn data"""
+    if not BULLHORN_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
+    
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:

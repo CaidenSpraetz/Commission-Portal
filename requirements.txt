@@ -2,8 +2,8 @@ Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
 gunicorn==23.0.0
 
-# data stack
+# Data stack (pin to avoid binary mismatches on Azure)
 numpy==1.26.4
 pandas==2.2.2
 openpyxl==3.1.5
-# xlrd==1.2.0   # only if you truly need legacy .xls files
+# xlrd==1.2.0  # uncomment only if you truly need legacy .xls files

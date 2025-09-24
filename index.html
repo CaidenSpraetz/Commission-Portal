@@ -1,1485 +1,754 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Commission Portal</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .login-card {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 40px;
-            text-align: center;
-        }
-
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 30px;
-        }
-
-        .role-btn {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-        }
-
-        .role-btn:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-
-        .role-title {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .role-desc {
-            font-size: 14px;
-            color: #666;
-        }
-
-        .header {
-            background: white;
-            padding: 20px 30px;
-            border-bottom: 1px solid #e1e5e9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav {
-            background: white;
-            padding: 0 30px;
-            border-bottom: 1px solid #e1e5e9;
-        }
-
-        .nav-list {
-            display: flex;
-            list-style: none;
-        }
-
-        .nav-item {
-            padding: 15px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .nav-item:hover {
-            background: #f8f9ff;
-        }
-
-        .nav-item.active {
-            border-bottom-color: #667eea;
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .content {
-            padding: 30px;
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5a6fd8;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .table th {
-            background: #f8f9fa;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .table td {
-            padding: 12px;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .table tbody tr:hover {
-            background: #f8f9ff;
-        }
-
-        .table .total-row {
-            background: #e3f2fd;
-            font-weight: bold;
-        }
-
-        .month-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
-
-        .upload-zone {
-            border: 2px dashed #dee2e6;
-            border-radius: 8px;
-            padding: 40px;
-            text-align: center;
-            margin: 20px 0;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .upload-zone:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-
-        .upload-zone.dragover {
-            border-color: #28a745;
-            background: #f0fff4;
-        }
-
-        .file-list {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-
-        .file-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .file-item:last-child {
-            border-bottom: none;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-info {
-            background: #cce7ff;
-            color: #004085;
-            border: 1px solid #99d6ff;
-        }
-
-        .commission-rules {
-            background: #e3f2fd;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196f3;
-        }
-
-        .commission-rules h4 {
-            margin-bottom: 10px;
-            color: #1976d2;
-        }
-
-        .commission-rules ul {
-            margin-left: 20px;
-        }
-
-        .commission-rules li {
-            margin: 5px 0;
-        }
-
-        .log {
-            background: #2d3748;
-            color: #e2e8f0;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .nav-list {
-                flex-wrap: wrap;
-            }
-            
-            .nav-item {
-                flex: 1;
-                text-align: center;
-                padding: 10px;
-                font-size: 14px;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Commission Portal</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --indigo: #120960;
+      --aegean: #1578a8;
+      --turquoise: #18E5E4;
+      --ash: #484042;
+      --light-gray: #f8f9fa;
+      --border-gray: #dee2e6;
+      --warning: #ffc107;
+      --danger: #dc3545;
+      --success: #198754;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Lato', sans-serif; background: var(--light-gray); min-height: 100vh; color: var(--ash); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+    .login-card { max-width: 420px; margin: 50px auto; padding: 40px; text-align: center; }
+    .logo { font-family: 'Montserrat', sans-serif; font-size: 28px; font-weight: 700; color: var(--indigo); margin-bottom: 30px; }
+    .role-btn { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid var(--border-gray); border-radius: 6px; background: white; cursor: pointer; transition: all 0.2s; text-align: left; }
+    .role-btn:hover { border-color: var(--aegean); background: #f0f9ff; }
+    .role-title { font-family: 'Montserrat', sans-serif; font-weight: 600; margin-bottom: 4px; color: var(--ash); }
+    .role-desc { font-size: 14px; color: #6c757d; }
+    .header { background: white; padding: 20px 30px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; }
+    .nav { background: white; padding: 0 30px; border-bottom: 1px solid var(--border-gray); }
+    .nav-list { display: flex; list-style: none; }
+    .nav-item { padding: 15px 20px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; font-family: 'Montserrat', sans-serif; font-weight: 500; user-select: none; }
+    .nav-item:hover { background: var(--light-gray); }
+    .nav-item.active { border-bottom-color: var(--turquoise); color: var(--indigo); font-weight: 600; }
+    .content { padding: 30px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--indigo); color: white; }
+    .btn-success { background: var(--aegean); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: 'Lato', sans-serif; }
+    .table th { background: var(--light-gray); padding: 12px; text-align: left; font-family: 'Montserrat', sans-serif; font-weight: 600; color: var(--ash); border-bottom: 2px solid var(--border-gray); }
+    .table td { padding: 12px; border-bottom: 1px solid var(--border-gray); vertical-align: top; }
+    .table tbody tr:hover { background: #f0f9ff; }
+    .table .total-row { background: #e8f4fd; font-weight: 600; }
+    .month-header { background: var(--indigo); color: white; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 6px; }
+    .hidden { display: none; }
+    h2, h3, h4 { font-family: 'Montserrat', sans-serif; color: var(--indigo); font-weight: 600; }
+    input, select { font-family: 'Lato', sans-serif; padding: 8px; border: 1px solid var(--border-gray); border-radius: 4px; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #fff; }
+    .badge-admin { background: var(--danger); }
+    .badge-manager { background: var(--warning); color: #212529; }
+    .badge-employee { background: var(--aegean); }
+    .kbd { background: var(--light-gray); padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+    @media (max-width: 768px) {
+      .nav-list { flex-wrap: wrap; }
+      .nav-item { flex: 1; text-align: center; padding: 10px; font-size: 14px; }
+      .header { flex-direction: column; gap: 10px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Login Screen -->
-        <div id="loginScreen">
-            <div class="card login-card">
-                <div class="logo">Commission Portal</div>
-                
-                <button class="role-btn" onclick="login('admin', 'Administrator')">
-                    <div class="role-title">Administrator</div>
-                    <div class="role-desc">Full system access</div>
-                </button>
-                
-                <button class="role-btn" onclick="login('manager', 'Sales Manager')">
-                    <div class="role-title">Manager</div>
-                    <div class="role-desc">Team management and uploads</div>
-                </button>
-                
-                <button class="role-btn" onclick="login('employee', 'Pam Henard')">
-                    <div class="role-title">Employee</div>
-                    <div class="role-desc">View personal commission data</div>
-                </button>
-            </div>
+  <div class="container">
+    <!-- Login Screen -->
+    <div id="loginScreen">
+      <div class="card login-card" aria-labelledby="app-title">
+        <div id="app-title" class="logo">Commission Portal</div>
+        <div style="margin-bottom: 20px;">
+          <input type="text" placeholder="Username" id="loginUsername" autocomplete="username" style="width: 100%; padding: 12px; margin-bottom: 10px; font-size: 16px;" />
+          <input type="password" placeholder="Password" id="loginPassword" autocomplete="current-password" style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px;" />
+          <button class="btn btn-primary" id="loginBtn" style="width: 100%; padding: 12px; font-size: 16px;">Sign In</button>
         </div>
-
-        <!-- Main App -->
-        <div id="mainApp" class="hidden">
-            <div class="card">
-                <div class="header">
-                    <div>
-                        <div class="logo">Commission Portal</div>
-                    </div>
-                    <div>
-                        <span id="userName">User</span> | <span id="userRole">Role</span>
-                        <button class="btn btn-danger" onclick="logout()" style="margin-left: 15px;">Sign Out</button>
-                    </div>
-                </div>
-
-                <nav class="nav">
-                    <ul class="nav-list">
-                        <li class="nav-item active" onclick="showPage('current')">Current Month</li>
-                        <li class="nav-item" onclick="showPage('ytd')">YTD Commission</li>
-                        <li class="nav-item" onclick="showPage('summary')">Monthly Summary</li>
-                        <li class="nav-item" onclick="showPage('placements')">All Placements</li>
-                        <li class="nav-item hidden" id="uploadNav" onclick="showPage('upload')">Upload Files</li>
-                    </ul>
-                </nav>
-
-                <div class="content">
-                    <!-- Current Month Page -->
-                    <div id="currentPage" class="page active">
-                        <div class="month-header">
-                            <h2>Current Month Contract Commission Details</h2>
-                            <p>August 2025</p>
-                        </div>
-
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Employee</th>
-                                    <th>Client</th>
-                                    <th>Sales Status</th>
-                                    <th>GP</th>
-                                    <th>Hourly GP</th>
-                                    <th>Commission Rate</th>
-                                    <th>Total Commission</th>
-                                    <th>Month</th>
-                                    <th>Day</th>
-                                </tr>
-                            </thead>
-                            <tbody id="currentTable"></tbody>
-                        </table>
-                    </div>
-
-                    <!-- YTD Commission Page -->
-                    <div id="ytdPage" class="page">
-                        <div class="month-header">
-                            <h2>2025 YTD Commission</h2>
-                        </div>
-
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Employee</th>
-                                    <th>Month</th>
-                                    <th>DirectHire Revenue</th>
-                                    <th>ParaHire Revenue</th>
-                                    <th>GP</th>
-                                    <th>Total Commission</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ytdTable"></tbody>
-                        </table>
-                    </div>
-
-                    <!-- Monthly Summary Page -->
-                    <div id="summaryPage" class="page">
-                        <h2 style="margin-bottom: 20px;">Monthly Summary</h2>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <select id="monthSelector" style="padding: 8px; border: 1px solid #dee2e6; border-radius: 4px;">
-                                <option value="2025-08">August 2025</option>
-                                <option value="2025-07">July 2025</option>
-                                <option value="2025-06">June 2025</option>
-                            </select>
-                            <select id="employeeSelector" style="padding: 8px; border: 1px solid #dee2e6; border-radius: 4px; margin-left: 10px;">
-                                <option value="all">All Employees</option>
-                            </select>
-                            <button class="btn btn-primary" onclick="updateSummary()" style="margin-left: 10px;">Update</button>
-                        </div>
-
-                        <div id="summaryStats" class="stats-grid"></div>
-                        <div id="summaryDetails"></div>
-                        
-                        <!-- Individual Employee Performance -->
-                        <div id="employeeBreakdown" style="margin-top: 30px;"></div>
-                    </div>
-
-                    <!-- All Placements Page -->
-                    <div id="placementsPage" class="page">
-                        <h2 style="margin-bottom: 20px;">All Placements</h2>
-                        
-                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                            <input type="text" placeholder="Search..." id="searchInput" style="padding: 8px; border: 1px solid #dee2e6; border-radius: 4px; margin-right: 10px;">
-                            <button class="btn btn-primary" onclick="filterPlacements()">Search</button>
-                            <button class="btn btn-primary" onclick="clearSearch()" style="margin-left: 10px;">Clear</button>
-                        </div>
-
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Date</th>
-                                    <th>Employee</th>
-                                    <th>Client</th>
-                                    <th>Hours</th>
-                                    <th>Revenue</th>
-                                    <th>GP</th>
-                                    <th>Commission</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="placementsTable"></tbody>
-                        </table>
-                    </div>
-
-                    <!-- Upload Files Page -->
-                    <div id="uploadPage" class="page">
-                        <h2 style="margin-bottom: 20px;">Upload Commission Files</h2>
-                        
-                        <div class="commission-rules">
-                            <h4>Commission Rate Structure (GP-Based)</h4>
-                            <ul>
-                                <li>GP < $3.25/hr → 3% commission</li>
-                                <li>$3.25 ≤ GP < $3.50/hr → 4% commission</li>
-                                <li>$3.50 ≤ GP < $4.00/hr → 5% commission</li>
-                                <li>$4.00 ≤ GP < $4.75/hr → 6% commission</li>
-                                <li>GP ≥ $4.75/hr → 7% commission</li>
-                            </ul>
-                        </div>
-
-                        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-                            <div style="font-size: 48px; margin-bottom: 15px;">📁</div>
-                            <h3>Click to Upload Files</h3>
-                            <p>Supports CSV and Excel files</p>
-                            <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls" style="display: none;">
-                        </div>
-
-                        <div id="fileListDiv" class="hidden">
-                            <h4>Selected Files:</h4>
-                            <div id="fileList" class="file-list"></div>
-                            <button class="btn btn-primary" onclick="previewFiles()">Preview Files</button>
-                            <button class="btn btn-success" onclick="processFiles()" style="margin-left: 10px;">Process Directly</button>
-                            <button class="btn btn-danger" onclick="clearFiles()" style="margin-left: 10px;">Clear</button>
-                        </div>
-
-                        <div id="filePreview" class="hidden">
-                            <h4>File Preview</h4>
-                            <div style="margin-bottom: 15px;">
-                                <button class="btn btn-success" onclick="processPreviewedFiles()">Process These Files</button>
-                                <button class="btn btn-danger" onclick="clearPreview()" style="margin-left: 10px;">Clear Preview</button>
-                            </div>
-                            <div id="previewContent" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background: #f8f9fa;"></div>
-                        </div>
-
-                        <div id="uploadResults" class="hidden alert alert-success">
-                            <h4>Upload Results</h4>
-                            <div id="resultsText"></div>
-                            <button class="btn btn-primary" onclick="showPage('current')" style="margin-top: 10px;">View Updated Data</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div style="border-top: 1px solid var(--border-gray); padding-top: 20px;">
+          <div style="font-size: 14px; color: #666; margin-bottom: 15px;">Demo Logins:</div>
+          <button class="role-btn" data-user="phenard" data-pass="temp123">
+            <div class="role-title">Pam Henard (Employee)</div>
+            <div class="role-desc">phenard / temp123</div>
+          </button>
+          <button class="role-btn" data-user="sjohnson" data-pass="secure789">
+            <div class="role-title">Sarah Johnson (Manager)</div>
+            <div class="role-desc">sjohnson / secure789</div>
+          </button>
+          <button class="role-btn" data-user="admin" data-pass="admin123">
+            <div class="role-title">Administrator</div>
+            <div class="role-desc">admin / admin123</div>
+          </button>
         </div>
-
-        <div id="logContainer" class="log">
-            <div>[SYSTEM] Commission Portal Ready</div>
-        </div>
+      </div>
     </div>
 
-    <script>
-        // Global state
-        let currentUser = null;
-        let currentMonthData = [];
-        let ytdData = [];
-        let placementsData = [];
-        let previewedFiles = []; // Store files for preview
+    <!-- Main App -->
+    <div id="mainApp" class="hidden" aria-live="polite">
+      <div class="card">
+        <div class="header">
+          <div class="logo">Commission Portal</div>
+          <div>
+            <span id="userName">User</span> | <span id="userRole">Role</span>
+            <button class="btn btn-danger" id="logoutBtn" style="margin-left: 15px;">Sign Out</button>
+          </div>
+        </div>
 
-        // Sample data
-        const initialCurrentMonth = [
-            {employee: 'Pam Henard', client: 'Ajax Building Company, LLC', status: 'New', gp: 336.96, hourlyGP: 6.48, rate: '10.00%', commission: 33.70, month: 'August', day: 3},
-            {employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, rate: '9.75%', commission: 11.49, month: 'August', day: 3},
-            {employee: 'Pam Henard', client: 'MetroNet', status: 'Legacy', gp: 11671.75, hourlyGP: 320.22, rate: '9.75%', commission: 1138.00, month: 'August', day: 3},
-            {employee: 'Pam Henard', client: 'Selective Insurance Group', status: 'New', gp: 437.48, hourlyGP: 12.82, rate: '10.00%', commission: 43.75, month: 'August', day: 3}
-        ];
+        <nav class="nav" aria-label="Primary">
+          <ul class="nav-list" id="navList">
+            <li class="nav-item active" data-page="current" role="button" tabindex="0">Current Month</li>
+            <li class="nav-item" data-page="ytd" role="button" tabindex="0">YTD Commission</li>
+            <li class="nav-item" data-page="summary" role="button" tabindex="0">Monthly Summary</li>
+            <li class="nav-item" data-page="placements" role="button" tabindex="0">All Placements</li>
+            <li class="nav-item hidden" id="employeeNav" data-page="employees" role="button" tabindex="0">Employees</li>
+            <li class="nav-item hidden" id="uploadNav" data-page="upload" role="button" tabindex="0">Upload Files</li>
+          </ul>
+        </nav>
 
-        const initialYTD = [
-            {employee: 'Pam Henard', month: 'January', directHire: '$250', paraHire: '', gp: '23,617.80', commission: '1,078.51'},
-            {employee: 'Pam Henard', month: 'February', directHire: '', paraHire: '', gp: '30,500.79', commission: '1,458.80'},
-            {employee: 'Pam Henard', month: 'March', directHire: '', paraHire: '', gp: '38,251.61', commission: '1,831.47'},
-            {employee: 'Pam Henard', month: 'August', directHire: '', paraHire: '', gp: '68,656.66', commission: '6,702.69'}
-        ];
+        <div class="content">
+          <!-- Current Month Page -->
+          <div id="currentPage" class="page active">
+            <div class="month-header">
+              <h2>Current Month Commission Details</h2>
+              <p id="currentMonthLabel"></p>
+            </div>
+            <table class="table" aria-describedby="currentMonthLabel">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Client</th>
+                  <th>Sales Status</th>
+                  <th>GP</th>
+                  <th>Hourly GP</th>
+                  <th>Commission Rate</th>
+                  <th>Total Commission</th>
+                  <th>Month</th>
+                  <th>Day</th>
+                </tr>
+              </thead>
+              <tbody id="currentTable"></tbody>
+            </table>
+          </div>
 
-        const initialPlacements = [
-            {id: 'PL001', date: '2025-08-03', employee: 'Pam Henard', client: 'Ajax Building Company, LLC', hours: 52, revenue: 3900, gp: 336.96, commission: 33.70, status: 'Active'},
-            {id: 'PL002', date: '2025-08-03', employee: 'Pam Henard', client: 'Evolent', hours: 40, revenue: 2600, gp: 117.84, commission: 11.49, status: 'Complete'},
-            {id: 'PL003', date: '2025-07-15', employee: 'Pam Henard', client: 'TechStart Solutions', hours: 45, revenue: 3600, gp: 1350, commission: 94.50, status: 'Active'}
-        ];
+          <!-- YTD Commission Page -->
+          <div id="ytdPage" class="page">
+            <div class="month-header">
+              <h2>2025 YTD Commission</h2>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Month</th>
+                  <th>Contract Revenue</th>
+                  <th>DirectHire Revenue</th>
+                  <th>ParaHire Revenue</th>
+                  <th>GP</th>
+                  <th>Overall Commission</th>
+                </tr>
+              </thead>
+              <tbody id="ytdTable"></tbody>
+            </table>
+          </div>
 
-        // Utility functions
-        function log(message, type = 'info') {
-            const logEl = document.getElementById('logContainer');
-            const time = new Date().toLocaleTimeString();
-            const div = document.createElement('div');
-            div.textContent = `[${time}] ${message}`;
-            if (type === 'error') div.style.color = '#ff6b6b';
-            if (type === 'success') div.style.color = '#51cf66';
-            logEl.appendChild(div);
-            logEl.scrollTop = logEl.scrollHeight;
-        }
+          <!-- Monthly Summary Page -->
+          <div id="summaryPage" class="page">
+            <h2 style="margin-bottom: 20px;">Monthly Summary</h2>
+            <div style="margin-bottom: 20px;">
+              <select id="monthSelector"></select>
+              <select id="employeeSelector" style="margin-left: 10px;">
+                <option value="all">All Employees</option>
+              </select>
+              <button class="btn btn-primary" id="summaryUpdateBtn" style="margin-left: 10px;">Update</button>
+            </div>
+            <div id="summaryContent">
+              <p>Select employee and month to view summary.</p>
+            </div>
+          </div>
 
-        function calculateCommissionRate(hourlyGP) {
-            if (hourlyGP < 3.25) return 0.03;
-            if (hourlyGP < 3.50) return 0.04;
-            if (hourlyGP < 4.00) return 0.05;
-            if (hourlyGP < 4.75) return 0.06;
-            return 0.07;
-        }
+          <!-- All Placements Page -->
+          <div id="placementsPage" class="page">
+            <h2 style="margin-bottom: 20px;">All Placements</h2>
+            <div style="margin-bottom: 20px; padding: 15px; background: var(--light-gray); border-radius: 8px;">
+              <input type="text" placeholder="Search (id, name, client, status)…" id="searchInput" style="margin-right: 10px;" />
+              <button class="btn btn-primary" id="searchBtn">Search</button>
+              <button class="btn btn-primary" id="clearBtn" style="margin-left: 10px;">Clear</button>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>Employee</th>
+                  <th>Client</th>
+                  <th>Hours</th>
+                  <th>Revenue</th>
+                  <th>GP</th>
+                  <th>Commission</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="placementsTable"></tbody>
+            </table>
+          </div>
 
-        // CSV parser function
-        function parseCSV(text) {
-            const lines = text.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const data = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim()) {
-                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index] || '';
-                    });
-                    data.push(row);
-                }
-            }
-            return data;
-        }
+          <!-- Employees Page -->
+          <div id="employeesPage" class="page">
+            <h2 style="margin-bottom: 20px;">Employee Management</h2>
+            <div style="margin-bottom: 20px; padding: 15px; background: var(--light-gray); border-radius: 8px;">
+              <h4 style="margin-bottom: 15px;">Add New Employee</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <input type="text" placeholder="Full Name" id="newEmployeeName" />
+                <input type="email" placeholder="Email" id="newEmployeeEmail" />
+                <input type="text" placeholder="Username" id="newEmployeeUsername" />
+                <input type="password" placeholder="Password" id="newEmployeePassword" />
+                <select id="newEmployeeRole">
+                  <option value="employee">Employee</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Administrator</option>
+                </select>
+                <select id="newEmployeeJobFunction">
+                  <option value="recruiter">Recruiter</option>
+                  <option value="sales">Sales</option>
+                  <option value="both">Recruiter &amp; Sales</option>
+                  <option value="admin">Administrative</option>
+                </select>
+              </div>
+              <button class="btn btn-success" id="addEmployeeBtn">Add Employee</button>
+              <button class="btn btn-primary" id="genPassBtn" style="margin-left: 10px;">Generate Password</button>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Username</th>
+                  <th>Access Level</th>
+                  <th>Job Function</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="employeesTable"></tbody>
+            </table>
+          </div>
 
-        // Main functions
-        function login(role, name) {
-            currentUser = {role, name};
-            
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainApp').classList.remove('hidden');
-            
-            document.getElementById('userName').textContent = name;
-            document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-            
-            if (role === 'admin' || role === 'manager') {
-                document.getElementById('uploadNav').classList.remove('hidden');
-            }
-            
-            loadData();
-            log(`Logged in as ${name} (${role})`, 'success');
-        }
+          <!-- Upload Files Page -->
+          <div id="uploadPage" class="page">
+            <h2 style="margin-bottom: 20px;">Upload Commission Files</h2>
+            <div id="dropArea" style="border: 2px dashed var(--border-gray); border-radius: 6px; padding: 40px; text-align: center; margin: 20px 0; cursor: pointer;">
+              <h3>Click or Drop Files to Upload</h3>
+              <p>Supports CSV and Excel files</p>
+              <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls" style="display: none;" />
+            </div>
+            <div id="uploadResults" style="margin-top: 20px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        function logout() {
-            currentUser = null;
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginScreen').style.display = 'block';
-            log('Logged out', 'success');
-        }
+  <script>
+    // ===== Azure Config (fill these to enable cross-browser cloud sync) =====
+    const AZURE_API_BASE = ""; // e.g. https://<your-func-app>.azurewebsites.net
+    const AZURE_API_KEY  = ""; // optional: x-functions-key if your function requires it
+    const ENABLE_AZURE_CLOUD = AZURE_API_BASE && AZURE_API_BASE.length > 0;
 
-        function showPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            
-            // Show selected page
-            document.getElementById(pageId + 'Page').classList.add('active');
-            
-            // Find and activate the clicked nav item
-            document.querySelectorAll('.nav-item').forEach(item => {
-                if (item.textContent.toLowerCase().includes(pageId) || 
-                    (pageId === 'current' && item.textContent.includes('Current')) ||
-                    (pageId === 'ytd' && item.textContent.includes('YTD')) ||
-                    (pageId === 'summary' && item.textContent.includes('Summary')) ||
-                    (pageId === 'placements' && item.textContent.includes('Placements')) ||
-                    (pageId === 'upload' && item.textContent.includes('Upload'))) {
-                    item.classList.add('active');
-                }
-            });
-            
-            // Update page content
-            if (pageId === 'current') updateCurrentMonth();
-            if (pageId === 'ytd') updateYTD();
-            if (pageId === 'summary') updateSummary();
-            if (pageId === 'placements') updatePlacements();
-            
-            log(`Navigated to ${pageId}`, 'info');
-        }
+    // ===== Global State (with simple persistence) =====
+    const STORAGE_KEYS = { EMPLOYEES: 'cp_employees_v1', PLACEMENTS: 'cp_placements_v1' };
+    let currentUser = null;
 
-        function loadData() {
-            currentMonthData = [...initialCurrentMonth];
-            ytdData = [...initialYTD];
-            placementsData = [...initialPlacements];
-            
-            // Filter for employee role
-            if (currentUser.role === 'employee') {
-                currentMonthData = currentMonthData.filter(item => item.employee === currentUser.name);
-                ytdData = ytdData.filter(item => item.employee === currentUser.name);
-                placementsData = placementsData.filter(item => item.employee === currentUser.name);
-            }
-            
-            // Populate employee selector
-            populateEmployeeSelector();
-            
-            updateCurrentMonth();
-        }
+    const defaultEmployees = [
+      { name: 'Pam Henard', email: 'pam@company.com', username: 'phenard', password: 'temp123', role: 'employee', jobFunction: 'recruiter', status: 'Active' },
+      { name: 'Sarah Johnson', email: 'sarah@company.com', username: 'sjohnson', password: 'secure789', role: 'manager', jobFunction: 'both', status: 'Active' },
+      { name: 'Administrator', email: 'admin@company.com', username: 'admin', password: 'admin123', role: 'admin', jobFunction: 'admin', status: 'Active' }
+    ];
 
-        function populateEmployeeSelector() {
-            const selector = document.getElementById('employeeSelector');
-            if (!selector) return;
-            
-            // Get unique employees from all data sources
-            const employees = new Set();
-            
-            currentMonthData.forEach(item => employees.add(item.employee));
-            ytdData.forEach(item => employees.add(item.employee));
-            placementsData.forEach(item => employees.add(item.employee));
-            
-            // Clear existing options except "All Employees"
-            selector.innerHTML = '<option value="all">All Employees</option>';
-            
-            // Add employee options
-            Array.from(employees).sort().forEach(employee => {
-                const option = document.createElement('option');
-                option.value = employee;
-                option.textContent = employee;
-                selector.appendChild(option);
-            });
-        }
+    const defaultCurrentMonthData = [
+      { employee: 'Pam Henard', client: 'Ajax Building Company', status: 'New', gp: 336.96, hourlyGP: 6.48, rate: '10.00%', commission: 33.70, month: 'August', day: 3 },
+      { employee: 'Pam Henard', client: 'Evolent', status: 'Enterprise', gp: 117.84, hourlyGP: 2.95, rate: '9.75%', commission: 11.49, month: 'August', day: 3 }
+    ];
 
-        function updateCurrentMonth() {
-            const tbody = document.getElementById('currentTable');
-            tbody.innerHTML = '';
-            
-            let totalGP = 0;
-            let totalCommission = 0;
-            
-            currentMonthData.forEach(item => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${item.employee}</td>
-                    <td>${item.client}</td>
-                    <td>${item.status}</td>
-                    <td>${item.gp.toFixed(2)}</td>
-                    <td>${item.hourlyGP.toFixed(2)}</td>
-                    <td>${item.rate}</td>
-                    <td>${item.commission.toFixed(2)}</td>
-                    <td>${item.month}</td>
-                    <td>${item.day}</td>
-                `;
-                totalGP += item.gp;
-                totalCommission += item.commission;
-            });
-            
-            // Add total row
-            const totalRow = tbody.insertRow();
-            totalRow.className = 'total-row';
-            totalRow.innerHTML = `
-                <td>Total</td><td></td><td></td>
-                <td>${totalGP.toFixed(2)}</td><td></td><td></td>
-                <td>${totalCommission.toFixed(2)}</td><td></td><td></td>
-            `;
-        }
+    const defaultYTD = [
+      { employee: 'Pam Henard', month: 'January', contractRevenue: '0', directHire: '250', paraHire: '', gp: '23,617.80', commission: '1,078.51' },
+      { employee: 'Pam Henard', month: 'February', contractRevenue: '0', directHire: '', paraHire: '', gp: '30,500.79', commission: '1,458.80' }
+    ];
 
-        function updateYTD() {
-            const tbody = document.getElementById('ytdTable');
-            tbody.innerHTML = '';
-            
-            ytdData.forEach(item => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${item.employee}</td>
-                    <td>${item.month}</td>
-                    <td>${item.directHire}</td>
-                    <td>${item.paraHire}</td>
-                    <td>${item.gp}</td>
-                    <td>${item.commission}</td>
-                `;
-            });
-            
-            // Add total row
-            const totalRow = tbody.insertRow();
-            totalRow.className = 'total-row';
-            totalRow.innerHTML = `
-                <td>Total</td><td></td>
-                <td>$250</td><td></td>
-                <td>328,673.18</td><td>22,919.35</td>
-            `;
-        }
+    const defaultPlacements = [
+      { id: 'PL001', date: '2025-08-03', employee: 'Pam Henard', client: 'Ajax Building Company', hours: 52, revenue: 3900, gp: 336.96, commission: 33.70, status: 'Active' }
+    ];
 
-        function updateSummary() {
-            const selectedMonth = document.getElementById('monthSelector').value;
-            const selectedEmployee = document.getElementById('employeeSelector').value;
-            const statsEl = document.getElementById('summaryStats');
-            const detailsEl = document.getElementById('summaryDetails');
-            const breakdownEl = document.getElementById('employeeBreakdown');
-            
-            // Filter data based on selections
-            let filteredData = [...currentMonthData];
-            if (selectedEmployee !== 'all') {
-                filteredData = filteredData.filter(item => item.employee === selectedEmployee);
-            }
-            
-            const totalPlacements = filteredData.length;
-            const totalGP = filteredData.reduce((sum, item) => sum + item.gp, 0);
-            const totalCommission = filteredData.reduce((sum, item) => sum + item.commission, 0);
-            const avgRate = totalGP > 0 ? (totalCommission / totalGP * 100).toFixed(1) : 0;
-            
-            // Update stats cards
-            statsEl.innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">${totalPlacements}</div>
-                    <div class="stat-label">Total Placements</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${totalGP.toLocaleString()}</div>
-                    <div class="stat-label">Total GP</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${totalCommission.toLocaleString()}</div>
-                    <div class="stat-label">Total Commission</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${avgRate}%</div>
-                    <div class="stat-label">Avg Rate</div>
-                </div>
-            `;
-            
-            // Update summary details
-            const employeeName = selectedEmployee === 'all' ? 'All employees' : selectedEmployee;
-            detailsEl.innerHTML = `
-                <div class="alert alert-info">
-                    <h4>August 2025 Performance Summary</h4>
-                    <p>${employeeName} completed ${totalPlacements} placements with an average commission rate of ${avgRate}%.</p>
-                </div>
-            `;
-            
-            // Create employee breakdown
-            if (selectedEmployee === 'all') {
-                createEmployeeBreakdown(breakdownEl);
-            } else {
-                createIndividualBreakdown(breakdownEl, selectedEmployee, filteredData);
-            }
-        }
+    let employeeList = loadFromStorage(STORAGE_KEYS.EMPLOYEES, defaultEmployees);
+    let placementsData = loadFromStorage(STORAGE_KEYS.PLACEMENTS, defaultPlacements);
+    let currentMonthData = [...defaultCurrentMonthData];
+    let ytdData = [...defaultYTD];
 
-        function createEmployeeBreakdown(container) {
-            // Group data by employee
-            const employeeData = {};
-            currentMonthData.forEach(item => {
-                if (!employeeData[item.employee]) {
-                    employeeData[item.employee] = {
-                        placements: 0,
-                        totalGP: 0,
-                        totalCommission: 0,
-                        clients: new Set()
-                    };
-                }
-                employeeData[item.employee].placements++;
-                employeeData[item.employee].totalGP += item.gp;
-                employeeData[item.employee].totalCommission += item.commission;
-                employeeData[item.employee].clients.add(item.client);
-            });
-            
-            container.innerHTML = `
-                <h3 style="margin-bottom: 20px; color: #667eea;">Employee Performance Breakdown</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Placements</th>
-                            <th>Unique Clients</th>
-                            <th>Total GP</th>
-                            <th>Total Commission</th>
-                            <th>Avg Rate</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${Object.entries(employeeData).map(([employee, data]) => {
-                            const avgRate = data.totalGP > 0 ? (data.totalCommission / data.totalGP * 100).toFixed(1) : 0;
-                            return `
-                                <tr>
-                                    <td><strong>${employee}</strong></td>
-                                    <td>${data.placements}</td>
-                                    <td>${data.clients.size}</td>
-                                    <td>${data.totalGP.toFixed(2)}</td>
-                                    <td>${data.totalCommission.toFixed(2)}</td>
-                                    <td>${avgRate}%</td>
-                                    <td>
-                                        <button class="btn btn-primary" onclick="selectEmployee('${employee}')" style="padding: 4px 8px; font-size: 12px;">
-                                            View Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
+    function saveToStorage(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage may be blocked */ } }
+    function loadFromStorage(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 
-        function createIndividualBreakdown(container, employee, data) {
-            // Group by client for this employee
-            const clientData = {};
-            data.forEach(item => {
-                if (!clientData[item.client]) {
-                    clientData[item.client] = {
-                        placements: 0,
-                        totalGP: 0,
-                        totalCommission: 0,
-                        avgRate: 0
-                    };
-                }
-                clientData[item.client].placements++;
-                clientData[item.client].totalGP += item.gp;
-                clientData[item.client].totalCommission += item.commission;
-            });
-            
-            // Calculate average rates
-            Object.values(clientData).forEach(client => {
-                client.avgRate = client.totalGP > 0 ? (client.totalCommission / client.totalGP * 100).toFixed(1) : 0;
-            });
-            
-            container.innerHTML = `
-                <h3 style="margin-bottom: 20px; color: #667eea;">${employee} - Client Breakdown</h3>
-                <div style="margin-bottom: 15px;">
-                    <button class="btn btn-primary" onclick="selectEmployee('all')" style="padding: 6px 12px; font-size: 14px;">
-                        ← Back to All Employees
-                    </button>
-                </div>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Client</th>
-                            <th>Placements</th>
-                            <th>Total GP</th>
-                            <th>Total Commission</th>
-                            <th>Avg Rate</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${Object.entries(clientData).map(([client, data]) => `
-                            <tr>
-                                <td><strong>${client}</strong></td>
-                                <td>${data.placements}</td>
-                                <td>${data.totalGP.toFixed(2)}</td>
-                                <td>${data.totalCommission.toFixed(2)}</td>
-                                <td>${data.avgRate}%</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                
-                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <h4 style="margin-bottom: 10px;">Performance Insights</h4>
-                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${Object.keys(clientData).length}</div>
-                            <div style="font-size: 12px; color: #666;">Active Clients</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${(data.reduce((sum, item) => sum + item.gp, 0) / data.length).toFixed(0)}</div>
-                            <div style="font-size: 12px; color: #666;">Avg GP per Placement</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${Math.max(...Object.values(clientData).map(c => c.placements))}</div>
-                            <div style="font-size: 12px; color: #666;">Max Placements (1 Client)</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">${Math.max(...Object.values(clientData).map(c => parseFloat(c.avgRate))).toFixed(1)}%</div>
-                            <div style="font-size: 12px; color: #666;">Highest Client Rate</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function selectEmployee(employee) {
-            document.getElementById('employeeSelector').value = employee;
-            updateSummary();
-        }
-
-        function updatePlacements() {
-            const tbody = document.getElementById('placementsTable');
-            tbody.innerHTML = '';
-            
-            placementsData.forEach(item => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${item.id}</td>
-                    <td>${item.date}</td>
-                    <td>${item.employee}</td>
-                    <td>${item.client}</td>
-                    <td>${item.hours}</td>
-                    <td>$${item.revenue.toLocaleString()}</td>
-                    <td>$${item.gp.toFixed(2)}</td>
-                    <td>$${item.commission.toFixed(2)}</td>
-                    <td><span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">${item.status}</span></td>
-                `;
-            });
-        }
-
-        function filterPlacements() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#placementsTable tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            });
-        }
-
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            filterPlacements();
-        }
-
-        function clearFiles() {
-            document.getElementById('fileInput').value = '';
-            document.getElementById('fileListDiv').classList.add('hidden');
-            document.getElementById('filePreview').classList.add('hidden');
-            document.getElementById('uploadResults').classList.add('hidden');
-            previewedFiles = [];
-            log('Files cleared', 'info');
-        }
-
-        function clearPreview() {
-            document.getElementById('filePreview').classList.add('hidden');
-            previewedFiles = [];
-            log('Preview cleared', 'info');
-        }
-
-        function previewFiles() {
-            const files = document.getElementById('fileInput').files;
-            if (files.length === 0) return;
-            
-            log('Previewing files...', 'info');
-            previewedFiles = [];
-            
-            const previewContent = document.getElementById('previewContent');
-            previewContent.innerHTML = '';
-            
-            let loadedCount = 0;
-            
-            Array.from(files).forEach((file, fileIndex) => {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        let data;
-                        
-                        if (file.name.endsWith('.csv')) {
-                            data = parseCSV(e.target.result);
-                        } else {
-                            const workbook = XLSX.read(e.target.result, {type: 'binary'});
-                            const sheetName = workbook.SheetNames[0];
-                            data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                        }
-                        
-                        // Store file data for later processing
-                        previewedFiles.push({
-                            name: file.name,
-                            data: data,
-                            originalFile: file
-                        });
-                        
-                        // Create preview section for this file
-                        const fileSection = document.createElement('div');
-                        fileSection.style.marginBottom = '30px';
-                        fileSection.style.border = '1px solid #dee2e6';
-                        fileSection.style.borderRadius = '8px';
-                        fileSection.style.padding = '15px';
-                        fileSection.style.background = 'white';
-                        
-                        const fileHeader = document.createElement('div');
-                        fileHeader.innerHTML = `
-                            <h5 style="margin-bottom: 10px; color: #667eea;">📄 ${file.name}</h5>
-                            <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
-                                ${data.length} rows • ${Object.keys(data[0] || {}).length} columns • ${(file.size / 1024).toFixed(1)} KB
-                            </p>
-                        `;
-                        fileSection.appendChild(fileHeader);
-                        
-                        if (data.length > 0) {
-                            // Show column headers
-                            const headers = Object.keys(data[0]);
-                            const headerDiv = document.createElement('div');
-                            headerDiv.innerHTML = `<strong>Columns:</strong> ${headers.join(', ')}`;
-                            headerDiv.style.marginBottom = '15px';
-                            headerDiv.style.padding = '10px';
-                            headerDiv.style.background = '#f8f9fa';
-                            headerDiv.style.borderRadius = '4px';
-                            headerDiv.style.fontSize = '12px';
-                            fileSection.appendChild(headerDiv);
-                            
-                            // Create data table
-                            const table = document.createElement('table');
-                            table.className = 'table';
-                            table.style.fontSize = '12px';
-                            table.style.margin = '0';
-                            
-                            // Table header
-                            const thead = document.createElement('thead');
-                            const headerRow = document.createElement('tr');
-                            headers.forEach(header => {
-                                const th = document.createElement('th');
-                                th.textContent = header;
-                                th.style.padding = '8px';
-                                th.style.maxWidth = '150px';
-                                th.style.overflow = 'hidden';
-                                th.style.textOverflow = 'ellipsis';
-                                th.style.whiteSpace = 'nowrap';
-                                headerRow.appendChild(th);
-                            });
-                            thead.appendChild(headerRow);
-                            table.appendChild(thead);
-                            
-                            // Table body - show first 10 rows
-                            const tbody = document.createElement('tbody');
-                            const rowsToShow = Math.min(10, data.length);
-                            
-                            for (let i = 0; i < rowsToShow; i++) {
-                                const row = document.createElement('tr');
-                                headers.forEach(header => {
-                                    const td = document.createElement('td');
-                                    td.textContent = data[i][header] || '';
-                                    td.style.padding = '8px';
-                                    td.style.maxWidth = '150px';
-                                    td.style.overflow = 'hidden';
-                                    td.style.textOverflow = 'ellipsis';
-                                    td.style.whiteSpace = 'nowrap';
-                                    td.title = data[i][header] || ''; // Tooltip for full text
-                                    row.appendChild(td);
-                                });
-                                tbody.appendChild(row);
-                            }
-                            table.appendChild(tbody);
-                            fileSection.appendChild(table);
-                            
-                            if (data.length > 10) {
-                                const moreInfo = document.createElement('div');
-                                moreInfo.innerHTML = `<em style="color: #666; font-size: 12px;">... and ${data.length - 10} more rows</em>`;
-                                moreInfo.style.marginTop = '10px';
-                                moreInfo.style.textAlign = 'center';
-                                fileSection.appendChild(moreInfo);
-                            }
-                            
-                            // Add potential matches info
-                            const matchInfo = document.createElement('div');
-                            matchInfo.style.marginTop = '15px';
-                            matchInfo.style.padding = '10px';
-                            matchInfo.style.background = '#e3f2fd';
-                            matchInfo.style.borderRadius = '4px';
-                            matchInfo.style.fontSize = '12px';
-                            
-                            const potentialMatches = findPotentialMatches(headers);
-                            matchInfo.innerHTML = `
-                                <strong>Detected TOA Fields:</strong><br>
-                                ${potentialMatches.length > 0 ? potentialMatches.join('<br>') : 'No standard TOA fields detected - manual processing may be needed'}
-                            `;
-                            fileSection.appendChild(matchInfo);
-                        } else {
-                            const noDataDiv = document.createElement('div');
-                            noDataDiv.innerHTML = '<em>No data found in this file</em>';
-                            noDataDiv.style.color = '#999';
-                            noDataDiv.style.fontStyle = 'italic';
-                            fileSection.appendChild(noDataDiv);
-                        }
-                        
-                        previewContent.appendChild(fileSection);
-                        
-                        loadedCount++;
-                        if (loadedCount === files.length) {
-                            document.getElementById('filePreview').classList.remove('hidden');
-                            log(`Preview complete: ${files.length} file(s) loaded`, 'success');
-                        }
-                        
-                    } catch (error) {
-                        log(`Error previewing ${file.name}: ${error.message}`, 'error');
-                        loadedCount++;
-                        if (loadedCount === files.length) {
-                            document.getElementById('filePreview').classList.remove('hidden');
-                        }
-                    }
-                };
-                
-                if (file.name.endsWith('.csv')) {
-                    reader.readAsText(file);
-                } else {
-                    reader.readAsBinaryString(file);
-                }
-            });
-        }
-
-        function findPotentialMatches(headers) {
-            const matches = [];
-            const fieldMappings = {
-                'Client': ['Client', 'Company', 'Client Name'],
-                'Employee/Recruiter': ['Placement Recruiter', 'Recruiter', 'Placement Sales', 'Sales', 'Employee'],
-                'Hours': ['Total Hours', 'Hours', 'Hrs'],
-                'Gross Profit': ['GP', 'Gross Profit', 'Profit'],
-                'Revenue': ['Total Bill', 'Bill', 'Revenue', 'Billing'],
-                'Date': ['WE Date', 'Week Ending', 'Date', 'Week End'],
-                'Status': ['Sales Status', 'Status'],
-                'Name': ['First Name', 'Last Name', 'Name']
-            };
-            
-            for (const [field, possibleHeaders] of Object.entries(fieldMappings)) {
-                for (const header of headers) {
-                    for (const possible of possibleHeaders) {
-                        if (header.toLowerCase().includes(possible.toLowerCase())) {
-                            matches.push(`${field}: "${header}"`);
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            return matches;
-        }
-
-        function processPreviewedFiles() {
-            if (previewedFiles.length === 0) {
-                log('No files to process', 'error');
-                return;
-            }
-            
-            log('Processing previewed files...', 'info');
-            let totalProcessed = 0;
-            
-            previewedFiles.forEach(fileData => {
-                fileData.data.forEach((row, index) => {
-                    // Extract TOA-specific fields
-                    const weDate = extractValue(row, ['WE Date', 'Week Ending', 'Date']);
-                    const client = extractValue(row, ['Client']);
-                    const salesStatus = extractValue(row, ['Sales Status', 'Status']);
-                    const firstName = extractValue(row, ['First Name']);
-                    const lastName = extractValue(row, ['Last Name']);
-                    const totalHours = extractValue(row, ['Total Hours', 'Hours']);
-                    const totalBill = extractValue(row, ['Total Bill', 'Bill']);
-                    const gp = extractValue(row, ['GP', 'Gross Profit']);
-                    const placementRecruiter = extractValue(row, ['Placement Recruiter (text)', 'Recruiter']);
-                    const placementSales = extractValue(row, ['Placement Sales (text)', 'Sales']);
-                    
-                    // Parse numeric values
-                    const hours = parseFloat(String(totalHours || '0').replace(/[,$\s]/g, '')) || 0;
-                    const grossProfit = parseFloat(String(gp || '0').replace(/[,$\s]/g, '')) || 0;
-                    const revenue = parseFloat(String(totalBill || '0').replace(/[,$\s]/g, '')) || 0;
-                    
-                    // Determine employee name (recruiter takes priority, then sales, then candidate name)
-                    let employee = placementRecruiter || placementSales;
-                    if (!employee && firstName && lastName) {
-                        employee = `${firstName} ${lastName}`;
-                    }
-                    
-                    // Only process if we have minimum required data
-                    if (grossProfit > 0 && hours > 0 && employee && client) {
-                        const hourlyGP = grossProfit / hours;
-                        const rate = calculateCommissionRate(hourlyGP);
-                        const commission = grossProfit * rate;
-                        
-                        // Add to current month data
-                        currentMonthData.push({
-                            employee: employee,
-                            client: client,
-                            status: salesStatus || 'New',
-                            gp: grossProfit,
-                            hourlyGP: hourlyGP,
-                            rate: (rate * 100).toFixed(2) + '%',
-                            commission: commission,
-                            month: 'August',
-                            day: weDate ? new Date(weDate).getDate() : new Date().getDate()
-                        });
-                        
-                        // Add to placements data
-                        placementsData.push({
-                            id: `PL${String(placementsData.length + 1).padStart(3, '0')}`,
-                            date: weDate || '2025-08-' + String(new Date().getDate()).padStart(2, '0'),
-                            employee: employee,
-                            client: client,
-                            hours: hours,
-                            revenue: revenue || Math.round(grossProfit * 1.5),
-                            gp: grossProfit,
-                            commission: commission,
-                            status: 'Active'
-                        });
-                        
-                        totalProcessed++;
-                    }
-                });
-            });
-            
-            showUploadResults(totalProcessed);
-            clearPreview();
-        }
-
-        // Update employee selector when new files are processed
-        function updateEmployeeSelectorAfterUpload() {
-            populateEmployeeSelector();
-        }
-
-        function extractValue(row, possibleKeys) {
-            for (let key of possibleKeys) {
-                // Check exact match first
-                if (row[key] !== undefined && row[key] !== '') return row[key];
-                
-                // Check case-insensitive partial match
-                for (let rowKey in row) {
-                    if (rowKey.toLowerCase().includes(key.toLowerCase())) {
-                        return row[rowKey];
-                    }
-                }
-            }
-            return null;
-        }
-
-        function processFiles() {
-            const files = document.getElementById('fileInput').files;
-            if (files.length === 0) return;
-            
-            log('Processing TOA files...', 'info');
-            let processedCount = 0;
-            let totalProcessed = 0;
-            
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        let data;
-                        
-                        if (file.name.endsWith('.csv')) {
-                            data = parseCSV(e.target.result);
-                        } else {
-                            const workbook = XLSX.read(e.target.result, {type: 'binary'});
-                            const sheetName = workbook.SheetNames[0];
-                            data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-                        }
-                        
-                        log(`Parsed ${data.length} rows from ${file.name}`, 'info');
-                        
-                        data.forEach((row, index) => {
-                            // Extract TOA-specific fields
-                            const weDate = extractValue(row, ['WE Date', 'Week Ending', 'Date']);
-                            const client = extractValue(row, ['Client']);
-                            const salesStatus = extractValue(row, ['Sales Status', 'Status']);
-                            const firstName = extractValue(row, ['First Name']);
-                            const lastName = extractValue(row, ['Last Name']);
-                            const totalHours = extractValue(row, ['Total Hours', 'Hours']);
-                            const totalBill = extractValue(row, ['Total Bill', 'Bill']);
-                            const gp = extractValue(row, ['GP', 'Gross Profit']);
-                            const placementRecruiter = extractValue(row, ['Placement Recruiter (text)', 'Recruiter']);
-                            const placementSales = extractValue(row, ['Placement Sales (text)', 'Sales']);
-                            
-                            // Parse numeric values
-                            const hours = parseFloat(String(totalHours || '0').replace(/[,$\s]/g, '')) || 0;
-                            const grossProfit = parseFloat(String(gp || '0').replace(/[,$\s]/g, '')) || 0;
-                            const revenue = parseFloat(String(totalBill || '0').replace(/[,$\s]/g, '')) || 0;
-                            
-                            // Determine employee name (recruiter takes priority, then sales, then candidate name)
-                            let employee = placementRecruiter || placementSales;
-                            if (!employee && firstName && lastName) {
-                                employee = `${firstName} ${lastName}`;
-                            }
-                            
-                            // Only process if we have minimum required data
-                            if (grossProfit > 0 && hours > 0 && employee && client) {
-                                const hourlyGP = grossProfit / hours;
-                                const rate = calculateCommissionRate(hourlyGP);
-                                const commission = grossProfit * rate;
-                                
-                                log(`Processing: ${employee}, ${client}, GP: ${grossProfit}, Hours: ${hours}`, 'info');
-                                
-                                // Add to current month data
-                                currentMonthData.push({
-                                    employee: employee,
-                                    client: client,
-                                    status: salesStatus || 'New',
-                                    gp: grossProfit,
-                                    hourlyGP: hourlyGP,
-                                    rate: (rate * 100).toFixed(2) + '%',
-                                    commission: commission,
-                                    month: 'August',
-                                    day: weDate ? new Date(weDate).getDate() : new Date().getDate()
-                                });
-                                
-                                // Add to placements data
-                                placementsData.push({
-                                    id: `PL${String(placementsData.length + 1).padStart(3, '0')}`,
-                                    date: weDate || '2025-08-' + String(new Date().getDate()).padStart(2, '0'),
-                                    employee: employee,
-                                    client: client,
-                                    hours: hours,
-                                    revenue: revenue || Math.round(grossProfit * 1.5),
-                                    gp: grossProfit,
-                                    commission: commission,
-                                    status: 'Active'
-                                });
-                                
-                                totalProcessed++;
-                            } else {
-                                if (index === 0) {
-                                    log(`Available columns: ${Object.keys(row).join(', ')}`, 'info');
-                                }
-                                if (!employee) {
-                                    log(`Row ${index + 1}: No employee found (Recruiter: ${placementRecruiter}, Sales: ${placementSales}, Name: ${firstName} ${lastName})`, 'info');
-                                }
-                                if (!client) {
-                                    log(`Row ${index + 1}: Missing client`, 'info');
-                                }
-                                if (grossProfit <= 0) {
-                                    log(`Row ${index + 1}: Invalid GP: ${gp}`, 'info');
-                                }
-                                if (hours <= 0) {
-                                    log(`Row ${index + 1}: Invalid hours: ${totalHours}`, 'info');
-                                }
-                            }
-                        });
-                        
-                        processedCount++;
-                        if (processedCount === files.length) {
-                            showUploadResults(totalProcessed);
-                        }
-                        
-                    } catch (error) {
-                        log(`Error processing ${file.name}: ${error.message}`, 'error');
-                        processedCount++;
-                        if (processedCount === files.length) {
-                            showUploadResults(totalProcessed);
-                        }
-                    }
-                };
-                
-                if (file.name.endsWith('.csv')) {
-                    reader.readAsText(file);
-                } else {
-                    reader.readAsBinaryString(file);
-                }
-            });
-        }
-
-        function showUploadResults(count) {
-            const resultsEl = document.getElementById('uploadResults');
-            const resultsText = document.getElementById('resultsText');
-            
-            if (count > 0) {
-                resultsText.innerHTML = `
-                    <p><strong>Successfully processed ${count} TOA records!</strong></p>
-                    <p>New commission entries have been added to your current month data.</p>
-                    <p>Commission rates applied based on hourly GP tiers (3%-7%).</p>
-                `;
-            } else {
-                resultsText.innerHTML = `
-                    <p><strong>No valid records found!</strong></p>
-                    <p>Make sure your file contains: Client, GP, Total Hours, and either Placement Recruiter or Placement Sales columns.</p>
-                    <p>Check the log below for detailed parsing information.</p>
-                `;
-            }
-            
-            resultsEl.classList.remove('hidden');
-            if (count > 0) {
-                updateCurrentMonth(); // Refresh the current month view
-            }
-            log(`Upload complete: ${count} TOA records processed`, count > 0 ? 'success' : 'error');
-        }
-
-        function displayFiles(files) {
-            const fileList = document.getElementById('fileList');
-            const fileListDiv = document.getElementById('fileListDiv');
-            
-            fileList.innerHTML = '';
-            Array.from(files).forEach(file => {
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                item.innerHTML = `
-                    <span>${file.name}</span>
-                    <span>${(file.size / 1024).toFixed(1)} KB</span>
-                `;
-                fileList.appendChild(item);
-            });
-            
-            fileListDiv.classList.remove('hidden');
-            log(`Selected ${files.length} file(s)`, 'info');
-        }
-
-        // File input event listener and initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('fileInput').addEventListener('change', function() {
-                const files = this.files;
-                if (files.length > 0) {
-                    displayFiles(files);
-                }
-            });
-            
-            // Drag and drop functionality
-            const uploadZone = document.querySelector('.upload-zone');
-            
-            uploadZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadZone.classList.add('dragover');
-            });
-            
-            uploadZone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                uploadZone.classList.remove('dragover');
-            });
-            
-            uploadZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadZone.classList.remove('dragover');
-                
-                const files = e.dataTransfer.files;
-                document.getElementById('fileInput').files = files;
-                displayFiles(files);
-            });
-            
-            // Initialize
-            log('Commission Portal loaded successfully', 'success');
+    // ===== Azure Cloud (Functions/Static Web Apps) optional layer =====
+    async function azureLoadState(userKey){
+      if(!ENABLE_AZURE_CLOUD) return null;
+      try{
+        const res = await fetch(`${AZURE_API_BASE}/api/state/${encodeURIComponent(userKey)}`,{
+          headers: { ...(AZURE_API_KEY?{"x-functions-key":AZURE_API_KEY}:{}) }
         });
-    </script>
+        if(!res.ok) return null;
+        return await res.json();
+      }catch(e){ return null; }
+    }
+    async function azureSaveState(userKey, state){
+      if(!ENABLE_AZURE_CLOUD) return;
+      try{
+        await fetch(`${AZURE_API_BASE}/api/state/${encodeURIComponent(userKey)}` ,{
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', ...(AZURE_API_KEY?{"x-functions-key":AZURE_API_KEY}:{}) },
+          body: JSON.stringify({ employees: state.employees, placements: state.placements, updatedAt: new Date().toISOString() })
+        });
+      }catch(e){ /* ignore transient failures */ }
+    }
+    // debounce to avoid rapid writes
+    function debounce(fn, ms=400){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+    const azureSaveDebounced = debounce(azureSaveState, 600);
+    function persistAll(){
+      persistAll();
+      persistAll();
+      if(currentUser && ENABLE_AZURE_CLOUD){
+        azureSaveDebounced(currentUser.username, { employees: employeeList, placements: placementsData });
+      }
+    }
+
+    // ===== Utilities =====
+    const fmtMoney = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const toTitle = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+    const today = new Date();
+    const currentMonthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(today);
+
+    // ===== Login/Logout =====
+    function attemptLogin(username, password) {
+      const user = employeeList.find((emp) => emp.username === username && emp.password === password && emp.status === 'Active');
+      if (!user) return false;
+      currentUser = user;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('userName').textContent = user.name;
+      document.getElementById('userRole').textContent = toTitle(user.role);
+      if (user.role === 'admin' || user.role === 'manager') {
+        document.getElementById('employeeNav').classList.remove('hidden');
+        document.getElementById('uploadNav').classList.remove('hidden');
+      }
+      loadData();
+      return true;
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('loginScreen').style.display = 'block';
+      document.getElementById('loginUsername').value = '';
+      document.getElementById('loginPassword').value = '';
+    }
+
+    // ===== Navigation =====
+    function setActivePage(pageId) {
+      document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+      document.getElementById(pageId + 'Page').classList.add('active');
+      const match = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+      if (match) match.classList.add('active');
+      if (pageId === 'current') updateCurrentMonth();
+      if (pageId === 'ytd') updateYTD();
+      if (pageId === 'placements') updatePlacements();
+      if (pageId === 'employees') updateEmployees();
+    }
+
+    // ===== Data Loaders =====
+    function loadData() {
+      document.getElementById('currentMonthLabel').textContent = currentMonthLabel;
+      populateEmployeeSelector();
+      populateMonthSelector();
+      updateCurrentMonth();
+    }
+
+    function populateEmployeeSelector() {
+      const selector = document.getElementById('employeeSelector');
+      if (!selector) return;
+      selector.innerHTML = '<option value="all">All Employees</option>';
+      employeeList.forEach((emp) => {
+        const opt = document.createElement('option');
+        opt.value = emp.name;
+        opt.textContent = emp.name;
+        selector.appendChild(opt);
+      });
+    }
+
+    function populateMonthSelector() {
+      const selector = document.getElementById('monthSelector');
+      if (!selector) return;
+      // last 6 months, most recent first
+      selector.innerHTML = '';
+      const base = new Date();
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(d);
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        selector.appendChild(opt);
+      }
+    }
+
+    // ===== Renderers =====
+    function updateCurrentMonth() {
+      const tbody = document.getElementById('currentTable');
+      tbody.innerHTML = '';
+      let totalGP = 0, totalCommission = 0;
+      currentMonthData.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.employee}</td>
+          <td>${item.client}</td>
+          <td>${item.status}</td>
+          <td>${Number(item.gp).toFixed(2)}</td>
+          <td>${Number(item.hourlyGP).toFixed(2)}</td>
+          <td>${item.rate}</td>
+          <td>${Number(item.commission).toFixed(2)}</td>
+          <td>${item.month}</td>
+          <td>${item.day}</td>`;
+        tbody.appendChild(tr);
+        totalGP += Number(item.gp) || 0;
+        totalCommission += Number(item.commission) || 0;
+      });
+      const totalRow = document.createElement('tr');
+      totalRow.className = 'total-row';
+      totalRow.innerHTML = `
+        <td>Total</td><td></td><td></td>
+        <td>${totalGP.toFixed(2)}</td><td></td><td></td>
+        <td>${totalCommission.toFixed(2)}</td><td></td><td></td>`;
+      tbody.appendChild(totalRow);
+    }
+
+    function updateYTD() {
+      const tbody = document.getElementById('ytdTable');
+      tbody.innerHTML = '';
+      ytdData.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.employee}</td>
+          <td>${item.month}</td>
+          <td>${item.contractRevenue}</td>
+          <td>${item.directHire}</td>
+          <td>${item.paraHire}</td>
+          <td>${item.gp}</td>
+          <td>${item.commission}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSummary() {
+      const monthVal = document.getElementById('monthSelector').value; // e.g., 2025-09
+      const employeeVal = document.getElementById('employeeSelector').value; // name or 'all'
+      // Filter placements by month & employee for a quick demo summary
+      const [y, m] = monthVal.split('-').map(Number);
+      const filtered = placementsData.filter((p) => {
+        const d = new Date(p.date);
+        const matchesMonth = d.getFullYear() === y && d.getMonth() + 1 === m;
+        const matchesEmp = employeeVal === 'all' || p.employee === employeeVal;
+        return matchesMonth && matchesEmp;
+      });
+      const totals = filtered.reduce((acc, r) => {
+        acc.hours += Number(r.hours) || 0;
+        acc.revenue += Number(r.revenue) || 0;
+        acc.gp += Number(r.gp) || 0;
+        acc.commission += Number(r.commission) || 0;
+        return acc;
+      }, { hours: 0, revenue: 0, gp: 0, commission: 0 });
+      const html = `
+        <div class="card" style="padding: 16px;">
+          <h3 style="margin-bottom: 10px;">Summary for <span class="kbd">${new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(new Date(y, m-1, 1))}</span> — <span class="kbd">${employeeVal === 'all' ? 'All Employees' : employeeVal}</span></h3>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div><div class="role-desc">Total Hours</div><div style="font-size:22px;">${totals.hours.toLocaleString()}</div></div>
+            <div><div class="role-desc">Revenue</div><div style="font-size:22px;">${fmtMoney(totals.revenue)}</div></div>
+            <div><div class="role-desc">Gross Profit</div><div style="font-size:22px;">${fmtMoney(totals.gp)}</div></div>
+            <div><div class="role-desc">Commission</div><div style="font-size:22px;">${fmtMoney(totals.commission)}</div></div>
+          </div>
+          <p style="margin-top:12px;color:#6c757d;">${filtered.length} placement${filtered.length===1?'':'s'} matched.</p>
+        </div>`;
+      document.getElementById('summaryContent').innerHTML = html;
+    }
+
+    function updatePlacements(list = placementsData) {
+      const tbody = document.getElementById('placementsTable');
+      tbody.innerHTML = '';
+      list.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.id}</td>
+          <td>${item.date}</td>
+          <td>${item.employee}</td>
+          <td>${item.client}</td>
+          <td>${item.hours}</td>
+          <td>${fmtMoney(item.revenue)}</td>
+          <td>${fmtMoney(item.gp)}</td>
+          <td>${fmtMoney(item.commission)}</td>
+          <td><span class="badge badge-employee">${item.status}</span></td>`;
+        tbody.appendChild(tr);
+      });
+      if (!list.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="9" style="text-align:center;color:#6c757d;">No placements to display.</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updateEmployees() {
+      const tbody = document.getElementById('employeesTable');
+      tbody.innerHTML = '';
+      employeeList.forEach((emp, index) => {
+        const badgeClass = emp.role === 'admin' ? 'badge-admin' : emp.role === 'manager' ? 'badge-manager' : 'badge-employee';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${emp.name}</td>
+          <td>${emp.email}</td>
+          <td><span class="kbd">${emp.username}</span></td>
+          <td><span class="badge ${badgeClass}">${emp.role.toUpperCase()}</span></td>
+          <td>${toTitle(emp.jobFunction)}</td>
+          <td><span class="badge badge-employee">${emp.status}</span></td>
+          <td>
+            <button class="btn btn-primary employee-edit-btn" data-index="${index}" style="padding:4px 8px;font-size:12px;margin-right:5px;">Edit</button>
+            <button class="btn btn-danger employee-remove-btn" data-index="${index}" style="padding:4px 8px;font-size:12px;">Remove</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      if (!employeeList.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="7" style="text-align:center;color:#6c757d;">No employees.</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ===== Employee CRUD =====
+    function addEmployee() {
+      const name = document.getElementById('newEmployeeName').value.trim();
+      const email = document.getElementById('newEmployeeEmail').value.trim();
+      const username = document.getElementById('newEmployeeUsername').value.trim();
+      const password = document.getElementById('newEmployeePassword').value.trim();
+      const role = document.getElementById('newEmployeeRole').value;
+      const jobFunction = document.getElementById('newEmployeeJobFunction').value;
+      if (!name || !email || !username || !password) { return alert('Please fill in all fields'); }
+      if (employeeList.find((emp) => emp.username === username)) return alert('Username already exists');
+      if (!email.includes('@')) return alert('Please enter a valid email address');
+      if (password.length < 8) return alert('Password must be at least 8 characters long');
+      employeeList.push({ name, email, username, password, role, jobFunction, status: 'Active' });
+      persistAll();
+      document.getElementById('newEmployeeName').value = '';
+      document.getElementById('newEmployeeEmail').value = '';
+      document.getElementById('newEmployeeUsername').value = '';
+      document.getElementById('newEmployeePassword').value = '';
+      document.getElementById('newEmployeeRole').value = 'employee';
+      document.getElementById('newEmployeeJobFunction').value = 'recruiter';
+      updateEmployees();
+      populateEmployeeSelector();
+      alert(`Employee "${name}" added successfully with ${role} access level`);
+    }
+
+    function generatePassword() {
+      const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+      let pwd = '';
+      for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+      document.getElementById('newEmployeePassword').value = pwd;
+      alert(`Generated password: ${pwd}`);
+    }
+
+    function editEmployeeAtIndex(index) {
+      if (index < 0 || index >= employeeList.length) return alert('Employee not found');
+      const e = employeeList[index];
+      const newName = prompt('Enter new name:', e.name);
+      if (newName && newName.trim()) e.name = newName.trim();
+      const newEmail = prompt('Enter new email:', e.email);
+      if (newEmail && newEmail.trim() && newEmail.includes('@')) e.email = newEmail.trim();
+      const newRole = prompt('Enter new access level (employee/manager/admin):', e.role);
+      if (newRole && ['employee', 'manager', 'admin'].includes(newRole.toLowerCase())) e.role = newRole.toLowerCase();
+      const newJob = prompt('Enter new job function (recruiter/sales/both/admin):', e.jobFunction);
+      if (newJob && ['recruiter', 'sales', 'both', 'admin'].includes(newJob.toLowerCase())) e.jobFunction = newJob.toLowerCase();
+      persistAll();
+      updateEmployees();
+      populateEmployeeSelector();
+      alert('Employee updated successfully');
+    }
+
+    function removeEmployeeAtIndex(index) {
+      if (index < 0 || index >= employeeList.length) return alert('Employee not found');
+      const e = employeeList[index];
+      if (!confirm('Remove ' + e.name + '?')) return;
+      employeeList.splice(index, 1);
+      persistAll();
+      updateEmployees();
+      populateEmployeeSelector();
+      alert('Employee removed');
+    }
+
+    // ===== Search Placements (case-insensitive multi-field) =====
+    function filterPlacements() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!q) { updatePlacements(); return; }
+      const filtered = placementsData.filter((p) => [p.id, p.employee, p.client, p.status]
+        .join(' ').toLowerCase().includes(q));
+      updatePlacements(filtered);
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      updatePlacements();
+    }
+
+    // ===== File Upload & Parsing (CSV/XLSX) =====
+    const dropArea = document.getElementById('dropArea');
+    function handleFiles(files) {
+      const out = document.getElementById('uploadResults');
+      out.innerHTML = '';
+      const summaries = [];
+      [...files].forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          let rows = [];
+          if (file.name.endsWith('.csv')) {
+            const text = e.target.result;
+            rows = csvToRows(text);
+          } else {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const first = wb.Sheets[wb.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(first, { defval: '', raw: true });
+          }
+          const before = placementsData.length;
+          const mapped = mapRowsToPlacements(rows);
+          if (mapped.length) {
+            placementsData = mergePlacements(placementsData, mapped);
+            persistAll();
+          }
+          const added = placementsData.length - before;
+          summaries.push(`<li><strong>${file.name}</strong>: ${added >= 0 ? added : 0} new/updated placements</li>`);
+          out.innerHTML = `<ul>${summaries.join('')}</ul>`;
+          updatePlacements();
+          persistAll();
+        };
+        if (file.name.endsWith('.csv')) reader.readAsText(file);
+        else reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function csvToRows(text) {
+      const [headerLine, ...lines] = text.split(/\r?\n/).filter(Boolean);
+      const headers = headerLine.split(',').map((h) => h.trim());
+      return lines.map((line) => {
+        const cells = line.split(',');
+        const obj = {};
+        headers.forEach((h, i) => (obj[h] = (cells[i] || '').trim()));
+        return obj;
+      });
+    }
+
+    // Map arbitrary headers to our placement schema as best-effort
+    function mapRowsToPlacements(rows) {
+      const out = [];
+      rows.forEach((r, i) => {
+        const id = r.ID || r.Id || r.id || r["Placement ID"] || `UPL-${Date.now()}-${i}`;
+        const date = (r.Date || r.date || r["Start Date"] || r["WE Date"]) || new Date().toISOString().slice(0,10);
+        const employee = r.Employee || r["Employee Name"] || r.employee || r.Recruiter || 'Unknown';
+        const client = r.Client || r["Client Name"] || r.client || r.Customer || 'Unknown';
+        const hours = Number(r.Hours || r["Total Hours"] || r.hours || 0);
+        const revenue = Number(r.Revenue || r["Bill Amount"] || r["Bill Rate"] || r.revenue || 0);
+        const gp = Number(r.GP || r["Gross Profit"] || r.gp || 0);
+        const commission = Number(r.Commission || r.commission || 0);
+        const status = r.Status || r.status || 'Active';
+        out.push({ id, date: String(date).slice(0,10), employee, client, hours, revenue, gp, commission, status });
+      });
+      return out;
+    }
+
+    function mergePlacements(existing, incoming) {
+      const byId = new Map(existing.map((p) => [p.id, p]));
+      incoming.forEach((p) => { byId.set(p.id, { ...byId.get(p.id), ...p }); });
+      return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
+    }
+
+    // ===== Event Listeners =====
+    document.addEventListener('DOMContentLoaded', () => {
+      // Login actions
+      document.getElementById('loginBtn').addEventListener('click', async () => {
+        const u = document.getElementById('loginUsername').value; const p = document.getElementById('loginPassword').value;
+        if (!attemptLogin(u, p)) { alert('Invalid credentials'); return; }
+        // Try Azure cloud state for this username; if none, seed it
+        try{
+          const cloud = await azureLoadState(u);
+          if(cloud && Array.isArray(cloud.employees) && Array.isArray(cloud.placements)){
+            employeeList = cloud.employees; placementsData = cloud.placements; persistAll();
+          } else {
+            await azureSaveState(u, { employees: employeeList, placements: placementsData });
+          }
+        }catch(_){ /* offline/no API -> continue with local */ }
+        loadData();
+      });
+      document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+      document.querySelectorAll('.role-btn').forEach((btn) => btn.addEventListener('click', () => {
+        document.getElementById('loginUsername').value = btn.dataset.user;
+        document.getElementById('loginPassword').value = btn.dataset.pass;
+        document.getElementById('loginBtn').click();
+      }));
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+
+      // Nav (click + keyboard)
+      document.getElementById('navList').addEventListener('click', (e) => {
+        const li = e.target.closest('.nav-item');
+        if (!li) return;
+        setActivePage(li.dataset.page);
+      });
+      document.getElementById('navList').addEventListener('keydown', (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('nav-item')) {
+          setActivePage(e.target.dataset.page);
+          e.preventDefault();
+        }
+      });
+
+      // Summary Update
+      document.getElementById('summaryUpdateBtn').addEventListener('click', updateSummary);
+
+      // Search/clear with debounce
+      document.getElementById('searchBtn').addEventListener('click', filterPlacements);
+      document.getElementById('clearBtn').addEventListener('click', clearSearch);
+      let debTimer; document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(debTimer); debTimer = setTimeout(filterPlacements, 250); });
+
+      // Employee table buttons (event delegation)
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('employee-edit-btn')) editEmployeeAtIndex(parseInt(e.target.getAttribute('data-index')));
+        if (e.target.classList.contains('employee-remove-btn')) removeEmployeeAtIndex(parseInt(e.target.getAttribute('data-index')));
+      });
+
+      // Add employee & generator
+      document.getElementById('addEmployeeBtn').addEventListener('click', addEmployee);
+      document.getElementById('genPassBtn').addEventListener('click', generatePassword);
+
+      // Upload: click or drag & drop
+      const fi = document.getElementById('fileInput');
+      dropArea.addEventListener('click', () => fi.click());
+      fi.addEventListener('change', (e) => handleFiles(e.target.files));
+      ;['dragenter','dragover'].forEach((ev) => dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.style.background = '#f0f9ff'; }));
+      ;['dragleave','drop'].forEach((ev) => dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.style.background = 'transparent'; }));
+      dropArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+    });
+  </script>
 </body>
 </html>
 

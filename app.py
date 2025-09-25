@@ -17,6 +17,7 @@ try:
     from bullhorn_api import (
         get_bullhorn_commission_data,
         BullhornAPI,
+        get_bbo_commission_data,
     )
     try:
         from bullhorn_api import BBOClient as ExternalBBOClient  # optional
@@ -588,49 +589,109 @@ def test_bbo_connection():
 
 @app.route('/api/bbo-summary', methods=['GET'])
 def bbo_summary():
-    """Quick summary of time entries from BBO for a recent lookback window."""
+    """Enhanced BBO summary with better error handling for 503 errors."""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
+    
     try:
         lookback_days = int(request.args.get("days", "30"))
         end_date = datetime.utcnow().date()
         start_date = end_date - timedelta(days=lookback_days)
-        client = BBOClient()
-        entries = client.get_time_entries(datetime(start_date.year, start_date.month, start_date.day),
-                                          datetime(end_date.year, end_date.month, end_date.day))
-        total = len(entries)
-        total_hours = 0.0
-        total_bill = 0.0
-        total_pay = 0.0
-        for e in entries:
-            total_hours += float(e.get("hours", 0) or 0)
-            total_bill += float(e.get("billAmount", 0) or 0)
-            total_pay += float(e.get("payAmount", 0) or 0)
-        return jsonify({
-            "success": True,
-            "summary": {
-                "entries": total,
-                "hours": round(total_hours, 2),
-                "bill_amount": round(total_bill, 2),
-                "pay_amount": round(total_pay, 2),
-                "gp_est": round(total_bill - total_pay, 2),
-                "window": {"start": str(start_date), "end": str(end_date)}
-            }
-        })
+        
+        if BULLHORN_AVAILABLE:
+            # Use enhanced BackOfficeAPI from bullhorn_api.py
+            from bullhorn_api import get_bbo_commission_data
+            commission_rows = get_bbo_commission_data(
+                datetime(start_date.year, start_date.month, start_date.day),
+                datetime(end_date.year, end_date.month, end_date.day)
+            )
+            
+            total_entries = len(commission_rows)
+            total_hours = sum(row.get("hourly_gp", 0) * 40 for row in commission_rows)  # Estimate
+            total_gp = sum(row.get("gp", 0) for row in commission_rows)
+            total_commission = sum(row.get("commission", 0) for row in commission_rows)
+            
+            return jsonify({
+                "success": True,
+                "summary": {
+                    "entries": total_entries,
+                    "hours": round(total_hours, 2),
+                    "gp_amount": round(total_gp, 2),
+                    "commission_amount": round(total_commission, 2),
+                    "window": {"start": str(start_date), "end": str(end_date)},
+                    "source": "enhanced_api"
+                }
+            })
+        else:
+            # Fallback to original BBOClient if bullhorn_api not available
+            client = BBOClient()
+            entries = client.get_time_entries(
+                datetime(start_date.year, start_date.month, start_date.day),
+                datetime(end_date.year, end_date.month, end_date.day)
+            )
+            total = len(entries)
+            total_hours = 0.0
+            total_bill = 0.0
+            total_pay = 0.0
+            for e in entries:
+                total_hours += float(e.get("hours", 0) or 0)
+                total_bill += float(e.get("billAmount", 0) or 0)
+                total_pay += float(e.get("payAmount", 0) or 0)
+            return jsonify({
+                "success": True,
+                "summary": {
+                    "entries": total,
+                    "hours": round(total_hours, 2),
+                    "bill_amount": round(total_bill, 2),
+                    "pay_amount": round(total_pay, 2),
+                    "gp_est": round(total_bill - total_pay, 2),
+                    "window": {"start": str(start_date), "end": str(end_date)},
+                    "source": "original_client"
+                }
+            })
+            
     except Exception as e:
-        return jsonify({'success': False, 'error': f'BBO summary failed: {e}'})
+        error_message = str(e)
+        
+        # Handle specific error types
+        if "503" in error_message or "Service Unavailable" in error_message:
+            return jsonify({
+                'success': False, 
+                'error': 'Back Office service is temporarily unavailable. Please try again later.',
+                'error_type': 'service_unavailable',
+                'retry_suggested': True
+            })
+        elif "404" in error_message:
+            return jsonify({
+                'success': False,
+                'error': 'Back Office timesheets endpoint not found. Please verify your tenant configuration.',
+                'error_type': 'endpoint_not_found'
+            })
+        elif "401" in error_message or "403" in error_message:
+            return jsonify({
+                'success': False,
+                'error': 'Back Office authentication failed. Please verify your credentials.',
+                'error_type': 'authentication_failed'
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': f'BBO summary failed: {error_message}',
+                'error_type': 'general_error'
+            })
 
 @app.route('/api/sync-bullhorn', methods=['POST'])
 def sync_bullhorn_data():
-    """Sync commission data from ATS (perms) and Back Office (contract/temps)."""
+    """Enhanced sync with better error handling for BBO service issues."""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
+    
     try:
         data = request.get_json() or {}
         start_date_str = data.get('start_date')
@@ -645,62 +706,102 @@ def sync_bullhorn_data():
         else:
             start_date = datetime(datetime.now().year, 1, 1)
 
-        all_records = get_bullhorn_commission_data(
-            include_contract_time=include_contract_time,
-            include_permanent=include_permanent,
-            start_date=start_date
-        )
-        if not all_records:
-            return jsonify({'success': False, 'error': 'No data retrieved from APIs'})
+        all_records = []
+        sync_warnings = []
+        
+        # Try to get ATS data (permanent placements)
+        if include_permanent:
+            try:
+                ats_records = get_bullhorn_commission_data(
+                    include_contract_time=False,
+                    include_permanent=True,
+                    start_date=start_date
+                )
+                all_records.extend(ats_records)
+                log.info(f"Successfully fetched {len(ats_records)} ATS records")
+            except Exception as e:
+                log.error(f"ATS sync failed: {e}")
+                sync_warnings.append(f"ATS sync failed: {str(e)}")
+        
+        # Try to get BBO data (contract/timesheet data)
+        if include_contract_time:
+            try:
+                end_date = datetime.now()
+                bbo_records = get_bbo_commission_data(start_date, end_date)
+                all_records.extend(bbo_records)
+                log.info(f"Successfully fetched {len(bbo_records)} BBO records")
+            except Exception as e:
+                log.error(f"BBO sync failed: {e}")
+                if "503" in str(e) or "Service Unavailable" in str(e):
+                    sync_warnings.append("Back Office service temporarily unavailable - contract data skipped")
+                else:
+                    sync_warnings.append(f"Back Office sync failed: {str(e)}")
+
+        if not all_records and not sync_warnings:
+            return jsonify({'success': False, 'error': 'No data retrieved from any APIs'})
 
         processed = 0
         for rec in all_records:
-            employee_name = rec.get('employee_name') or rec.get('employee') or ""
-            client = rec.get('client') or ""
-            status = rec.get('status') or "New"
-            gp = float(rec.get('gp') or 0.0)
-            hourly_gp = float(rec.get('hourly_gp') or 0.0)
-            commission_rate = rec.get('commission_rate') or "10.00%"
-            commission = float(rec.get('commission') or round(gp * 0.10, 2))
-            month = rec.get('month') or (start_date.strftime("%B"))
-            day = int(rec.get('day') or 1)
-            year = int(rec.get('year') or start_date.year)
-            placement_id = rec.get("placement_id")
+            try:
+                employee_name = rec.get('employee_name') or rec.get('employee') or ""
+                client = rec.get('client') or ""
+                status = rec.get('status') or "New"
+                gp = float(rec.get('gp') or 0.0)
+                hourly_gp = float(rec.get('hourly_gp') or 0.0)
+                commission_rate = rec.get('commission_rate') or "10.00%"
+                commission = float(rec.get('commission') or round(gp * 0.10, 2))
+                month = rec.get('month') or (start_date.strftime("%B"))
+                day = int(rec.get('day') or 1)
+                year = int(rec.get('year') or start_date.year)
+                placement_id = rec.get("placement_id")
 
-            unique_key = _dedupe_key({
-                "employee_name": employee_name,
-                "client": client,
-                "status": status,
-                "gp": gp,
-                "month": month,
-                "day": day,
-                "year": year,
-                "placement_id": placement_id
-            })
+                unique_key = _dedupe_key({
+                    "employee_name": employee_name,
+                    "client": client,
+                    "status": status,
+                    "gp": gp,
+                    "month": month,
+                    "day": day,
+                    "year": year,
+                    "placement_id": placement_id
+                })
 
-            if CommissionData.query.filter_by(unique_key=unique_key).first():
+                if CommissionData.query.filter_by(unique_key=unique_key).first():
+                    continue
+
+                row = CommissionData(
+                    employee_name=employee_name,
+                    client=client,
+                    status=status,
+                    gp=gp,
+                    hourly_gp=round(hourly_gp, 2),
+                    commission_rate=commission_rate,
+                    commission=round(commission, 2),
+                    month=month,
+                    day=day,
+                    year=year,
+                    placement_id=str(placement_id) if placement_id else None,
+                    unique_key=unique_key,
+                    employee_id=_employee_id_by_name(employee_name)
+                )
+                db.session.add(row)
+                processed += 1
+            except Exception as rec_error:
+                log.warning(f"Error processing record: {rec_error}")
                 continue
 
-            row = CommissionData(
-                employee_name=employee_name,
-                client=client,
-                status=status,
-                gp=gp,
-                hourly_gp=round(hourly_gp, 2),
-                commission_rate=commission_rate,
-                commission=round(commission, 2),
-                month=month,
-                day=day,
-                year=year,
-                placement_id=str(placement_id) if placement_id else None,
-                unique_key=unique_key,
-                employee_id=_employee_id_by_name(employee_name)
-            )
-            db.session.add(row)
-            processed += 1
-
         db.session.commit()
-        return jsonify({'success': True, 'processed': processed, 'total_fetched': len(all_records)})
+        
+        response_data = {
+            'success': True, 
+            'processed': processed, 
+            'total_fetched': len(all_records)
+        }
+        
+        if sync_warnings:
+            response_data['warnings'] = sync_warnings
+            
+        return jsonify(response_data)
 
     except Exception as e:
         db.session.rollback()

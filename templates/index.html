@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Commission Portal</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -56,22 +55,17 @@
     .badge-manager { background: var(--warning); color: #212529; }
     .badge-employee { background: var(--aegean); }
     .kbd { background: var(--light-gray); padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
-    @media (max-width: 768px) {
-      .nav-list { flex-wrap: wrap; }
-      .nav-item { flex: 1; text-align: center; padding: 10px; font-size: 14px; }
-      .header { flex-direction: column; gap: 10px; }
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Login Screen -->
     <div id="loginScreen">
-      <div class="card login-card" aria-labelledby="app-title">
-        <div id="app-title" class="logo">Commission Portal</div>
+      <div class="card login-card">
+        <div class="logo">Commission Portal</div>
         <div style="margin-bottom: 20px;">
-          <input type="text" placeholder="Username" id="loginUsername" autocomplete="username" style="width: 100%; padding: 12px; margin-bottom: 10px; font-size: 16px;" />
-          <input type="password" placeholder="Password" id="loginPassword" autocomplete="current-password" style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px;" />
+          <input type="text" placeholder="Username" id="loginUsername" style="width: 100%; padding: 12px; margin-bottom: 10px; font-size: 16px;" />
+          <input type="password" placeholder="Password" id="loginPassword" style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px;" />
           <button class="btn btn-primary" id="loginBtn" style="width: 100%; padding: 12px; font-size: 16px;">Sign In</button>
         </div>
         <div style="border-top: 1px solid var(--border-gray); padding-top: 20px;">
@@ -93,7 +87,7 @@
     </div>
 
     <!-- Main App -->
-    <div id="mainApp" class="hidden" aria-live="polite">
+    <div id="mainApp" class="hidden">
       <div class="card">
         <div class="header">
           <div class="logo">Commission Portal</div>
@@ -103,15 +97,15 @@
           </div>
         </div>
 
-        <nav class="nav" aria-label="Primary">
+        <nav class="nav">
           <ul class="nav-list" id="navList">
-            <li class="nav-item active" data-page="current" role="button" tabindex="0">Current Month</li>
-            <li class="nav-item" data-page="ytd" role="button" tabindex="0">YTD Commission</li>
-            <li class="nav-item" data-page="summary" role="button" tabindex="0">Monthly Summary</li>
-            <li class="nav-item" data-page="placements" role="button" tabindex="0">All Placements</li>
-            <li class="nav-item hidden" id="employeeNav" data-page="employees" role="button" tabindex="0">Employees</li>
-            <li class="nav-item hidden" id="uploadNav" data-page="upload" role="button" tabindex="0">Upload Files</li>
-            <li class="nav-item hidden" id="bullhornNav" data-page="bullhorn" role="button" tabindex="0">Bullhorn Sync</li>
+            <li class="nav-item active" data-page="current">Current Month</li>
+            <li class="nav-item" data-page="ytd">YTD Commission</li>
+            <li class="nav-item" data-page="summary">Monthly Summary</li>
+            <li class="nav-item" data-page="placements">All Placements</li>
+            <li class="nav-item hidden" id="employeeNav" data-page="employees">Employees</li>
+            <li class="nav-item hidden" id="uploadNav" data-page="upload">Upload Files</li>
+            <li class="nav-item hidden" id="bullhornNav" data-page="bullhorn">Bullhorn Sync</li>
           </ul>
         </nav>
 
@@ -122,7 +116,7 @@
               <h2>Current Month Commission Details</h2>
               <p id="currentMonthLabel"></p>
             </div>
-            <table class="table" aria-describedby="currentMonthLabel">
+            <table class="table">
               <thead>
                 <tr>
                   <th>Employee</th>
@@ -138,126 +132,6 @@
               </thead>
               <tbody id="currentTable"></tbody>
             </table>
-          </div>
-
-          <!-- YTD Commission Page -->
-          <div id="ytdPage" class="page">
-            <div class="month-header">
-              <h2>2025 YTD Commission</h2>
-            </div>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Month</th>
-                  <th>Contract Revenue</th>
-                  <th>DirectHire Revenue</th>
-                  <th>ParaHire Revenue</th>
-                  <th>GP</th>
-                  <th>Overall Commission</th>
-                </tr>
-              </thead>
-              <tbody id="ytdTable"></tbody>
-            </table>
-          </div>
-
-          <!-- Monthly Summary Page -->
-          <div id="summaryPage" class="page">
-            <h2 style="margin-bottom: 20px;">Monthly Summary</h2>
-            <div style="margin-bottom: 20px;">
-              <select id="monthSelector"></select>
-              <select id="employeeSelector" style="margin-left: 10px;">
-                <option value="all">All Employees</option>
-              </select>
-              <button class="btn btn-primary" id="summaryUpdateBtn" style="margin-left: 10px;">Update</button>
-            </div>
-            <div id="summaryContent">
-              <p>Select employee and month to view summary.</p>
-            </div>
-          </div>
-
-          <!-- All Placements Page -->
-          <div id="placementsPage" class="page">
-            <h2 style="margin-bottom: 20px;">All Placements</h2>
-            <div style="margin-bottom: 20px; padding: 15px; background: var(--light-gray); border-radius: 8px;">
-              <input type="text" placeholder="Search (id, name, client, status)…" id="searchInput" style="margin-right: 10px;" />
-              <button class="btn btn-primary" id="searchBtn">Search</button>
-              <button class="btn btn-primary" id="clearBtn" style="margin-left: 10px;">Clear</button>
-            </div>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Date</th>
-                  <th>Employee</th>
-                  <th>Client</th>
-                  <th>Hours</th>
-                  <th>Revenue</th>
-                  <th>GP</th>
-                  <th>Commission</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="placementsTable"></tbody>
-            </table>
-          </div>
-
-          <!-- Employees Page -->
-          <div id="employeesPage" class="page">
-            <h2 style="margin-bottom: 20px;">Employee Management</h2>
-            <div style="margin-bottom: 20px; padding: 15px; background: var(--light-gray); border-radius: 8px;">
-              <h4 style="margin-bottom: 15px;">Add New Employee</h4>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                <input type="text" placeholder="Full Name" id="newEmployeeName" />
-                <input type="email" placeholder="Email" id="newEmployeeEmail" />
-                <input type="text" placeholder="Username" id="newEmployeeUsername" />
-                <input type="password" placeholder="Password" id="newEmployeePassword" />
-                <select id="newEmployeeRole">
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Administrator</option>
-                </select>
-                <select id="newEmployeeJobFunction">
-                  <option value="recruiter">Recruiter</option>
-                  <option value="sales">Sales</option>
-                  <option value="both">Recruiter &amp; Sales</option>
-                  <option value="admin">Administrative</option>
-                </select>
-              </div>
-              <button class="btn btn-success" id="addEmployeeBtn">Add Employee</button>
-              <button class="btn btn-primary" id="genPassBtn" style="margin-left: 10px;">Generate Password</button>
-            </div>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Username</th>
-                  <th>Access Level</th>
-                  <th>Job Function</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="employeesTable"></tbody>
-            </table>
-          </div>
-
-          <!-- Upload Files Page -->
-          <div id="uploadPage" class="page">
-            <h2 style="margin-bottom: 20px;">Upload Commission Files</h2>
-            <div id="dropArea" style="border: 2px dashed var(--border-gray); border-radius: 6px; padding: 40px; text-align: center; margin: 20px 0; cursor: pointer;">
-              <h3>Click or Drop Files to Upload</h3>
-              <p>Supports CSV and Excel files</p>
-              <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls" style="display: none;" />
-            </div>
-            <!-- server-side upload (persists across browsers) -->
-            <form id="serverUploadForm" enctype="multipart/form-data" style="margin-top: 12px;">
-              <input type="file" id="serverFile" name="file" accept=".csv,.xlsx,.xls" required />
-              <button type="submit" class="btn btn-primary" style="margin-left:10px;">Submit</button>
-            </form>
-            <div id="serverUploadStatus" style="margin-top:10px;"></div>
-            <div id="uploadResults" style="margin-top: 20px;"></div>
           </div>
 
           <!-- Bullhorn Sync Page -->
@@ -281,9 +155,9 @@
                   <input type="date" id="syncStartDate" style="width: 100%;" />
                 </div>
                 <div>
-                  <label style="display: block; margin-bottom: 5px; font-weight: 500;">Include TOA Data:</label>
-                  <input type="checkbox" id="includeTOA" checked style="margin-right: 8px;" />
-                  <label for="includeTOA">Time on Assignment</label>
+                  <label style="display: block; margin-bottom: 5px; font-weight: 500;">Include Contract Time:</label>
+                  <input type="checkbox" id="includeContractTime" checked style="margin-right: 8px;" />
+                  <label for="includeContractTime">Contract/Temp Time Records</label>
                 </div>
                 <div>
                   <label style="display: block; margin-bottom: 5px; font-weight: 500;">Include Permanent:</label>
@@ -309,63 +183,16 @@
   </div>
 
   <script>
-    // ===== Optional Azure sync (unused unless you fill in BASE) =====
-    const AZURE_API_BASE = ""; // e.g. https://<your-func-app>.azurewebsites.net
-    const AZURE_API_KEY  = ""; // optional
-    const ENABLE_AZURE_CLOUD = AZURE_API_BASE && AZURE_API_BASE.length > 0;
-    async function azureLoadState(userKey){
-      if(!ENABLE_AZURE_CLOUD) return null;
-      try{
-        const res = await fetch(`${AZURE_API_BASE}/api/state/${encodeURIComponent(userKey)}`,{
-          headers: { ...(AZURE_API_KEY?{"x-functions-key":AZURE_API_KEY}:{}) }
-        });
-        if(!res.ok) return null;
-        return await res.json();
-      }catch(e){ return null; }
-    }
-    async function azureSaveState(userKey, state){
-      if(!ENABLE_AZURE_CLOUD) return;
-      try{
-        await fetch(`${AZURE_API_BASE}/api/state/${encodeURIComponent(userKey)}` ,{
-          method:'POST',
-          headers:{ 'Content-Type':'application/json', ...(AZURE_API_KEY?{"x-functions-key":AZURE_API_KEY}:{}) },
-          body: JSON.stringify({ employees: state.employees, placements: state.placements, updatedAt: new Date().toISOString() })
-        });
-      }catch(e){}
-    }
-    function debounce(fn, ms=400){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-    const azureSaveDebounced = debounce(azureSaveState, 600);
-
-    // ===== Global State (local cache) =====
-    const STORAGE_KEYS = { EMPLOYEES: 'cp_employees_v1', PLACEMENTS: 'cp_placements_v1' };
+    // Global State
     let currentUser = null;
     let employeeList = [];
-    let placementsData = [
-      { id: 'PL001', date: '2025-08-03', employee: 'Pam Henard', client: 'Ajax Building Company', hours: 52, revenue: 3900, gp: 336.96, commission: 33.70, status: 'Active' }
-    ];
     let currentMonthData = [];
-    const defaultYTD = [
-      { employee: 'Pam Henard', month: 'January', contractRevenue: '0', directHire: '250', paraHire: '', gp: '23,617.80', commission: '1,078.51' },
-      { employee: 'Pam Henard', month: 'February', contractRevenue: '0', directHire: '', paraHire: '', gp: '30,500.79', commission: '1,458.80' }
-    ];
 
-    function saveToStorage(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-    function loadFromStorage(k, fb){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
-    function persistAll(){
-      saveToStorage(STORAGE_KEYS.EMPLOYEES, employeeList);
-      saveToStorage(STORAGE_KEYS.PLACEMENTS, placementsData);
-      if(currentUser && ENABLE_AZURE_CLOUD){
-        azureSaveDebounced(currentUser.username, { employees: employeeList, placements: placementsData });
-      }
-    }
-
-    // ===== Utilities =====
-    const fmtMoney = (n) => `${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Utilities
     const toTitle = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
-    const today = new Date();
-    const currentMonthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(today);
+    const currentMonthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date());
 
-    // ===== Server API helpers =====
+    // Server API helpers
     async function serverLogin(username, password) {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -373,28 +200,11 @@
         credentials: 'same-origin',
         body: JSON.stringify({ username, password })
       });
-      if (!res.ok) throw new Error(`Login failed (${res.status})`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Invalid credentials');
       return data.user;
     }
-    async function serverLogout() {
-      await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
-    }
-    async function fetchEmployees() {
-      try {
-        const res = await fetch('/api/employees', { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const rows = await res.json();
-        employeeList = rows.map(e => ({
-          id: e.id, name: e.name, email: e.email, username: e.username,
-          role: e.role, jobFunction: e.job_function, status: e.status
-        }));
-        persistAll();
-        updateEmployees();
-        populateEmployeeSelector();
-      } catch (_) {}
-    }
+
     async function refreshFromServer() {
       try {
         const res = await fetch('/api/commission-data', { credentials: 'same-origin' });
@@ -411,25 +221,8 @@
         }
       } catch (_) {}
     }
-    async function deleteEmployeeById(id, name){
-      if (!currentUser) { alert('Please sign in first.'); return; }
-      if (!id) { alert('Missing employee id'); return; }
-      if (!confirm(`Remove ${name || 'this employee'}?`)) return;
-      try{
-        const res = await fetch(`/api/employees/${id}`, { method:'DELETE', credentials:'same-origin' });
-        const data = await res.json().catch(()=>({}));
-        if (!res.ok || data.success === false) {
-          alert(`Delete failed: ${data.error || res.statusText}`);
-          return;
-        }
-        await fetchEmployees();
-        alert('Employee removed');
-      }catch(err){
-        alert(`Delete error: ${String(err)}`);
-      }
-    }
 
-    // ===== Login/Logout UI =====
+    // UI Functions
     function showAppFor(user) {
       currentUser = user;
       document.getElementById('loginScreen').style.display = 'none';
@@ -440,77 +233,11 @@
         document.getElementById('employeeNav').classList.remove('hidden');
         document.getElementById('uploadNav').classList.remove('hidden');
         document.getElementById('bullhornNav').classList.remove('hidden');
-      } else {
-        document.getElementById('employeeNav').classList.add('hidden');
-        document.getElementById('uploadNav').classList.add('hidden');
-        document.getElementById('bullhornNav').classList.add('hidden');
       }
-      loadData();
-    }
-    function loadData() {
       document.getElementById('currentMonthLabel').textContent = currentMonthLabel;
-      populateEmployeeSelector();
-      populateMonthSelector();
-      updateCurrentMonth();
-    }
-    function logoutUI() {
-      currentUser = null;
-      document.getElementById('mainApp').classList.add('hidden');
-      document.getElementById('loginScreen').style.display = 'block';
-      document.getElementById('loginUsername').value = '';
-      document.getElementById('loginPassword').value = '';
+      refreshFromServer();
     }
 
-    // ===== Navigation =====
-    function setActivePage(pageId) {
-      document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
-      document.getElementById(pageId + 'Page').classList.add('active');
-      const match = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-      if (match) match.classList.add('active');
-      if (pageId === 'current') updateCurrentMonth();
-      if (pageId === 'ytd') updateYTD();
-      if (pageId === 'placements') updatePlacements();
-      if (pageId === 'employees') updateEmployees();
-      if (pageId === 'bullhorn') {
-        // Auto-load summary when opening Bullhorn page
-        setTimeout(() => {
-          const summaryBtn = document.getElementById('getSummaryBtn');
-          if (summaryBtn) summaryBtn.click();
-        }, 500);
-      }
-      if (currentUser) refreshFromServer();
-    }
-
-    // ===== Selectors =====
-    function populateEmployeeSelector() {
-      const selector = document.getElementById('employeeSelector');
-      if (!selector) return;
-      selector.innerHTML = '<option value="all">All Employees</option>';
-      employeeList.forEach((emp) => {
-        const opt = document.createElement('option');
-        opt.value = emp.name;
-        opt.textContent = emp.name;
-        selector.appendChild(opt);
-      });
-    }
-    function populateMonthSelector() {
-      const selector = document.getElementById('monthSelector');
-      if (!selector) return;
-      selector.innerHTML = '';
-      const base = new Date();
-      for (let i = 0; i < 6; i++) {
-        const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
-        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(d);
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = label;
-        selector.appendChild(opt);
-      }
-    }
-
-    // ===== Renderers =====
     function updateCurrentMonth() {
       const tbody = document.getElementById('currentTable');
       tbody.innerHTML = '';
@@ -539,504 +266,76 @@
         <td>${totalCommission.toFixed(2)}</td><td></td><td></td>`;
       tbody.appendChild(totalRow);
     }
-    function updateYTD() {
-      const tbody = document.getElementById('ytdTable');
-      tbody.innerHTML = '';
-      defaultYTD.forEach((item) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.employee}</td>
-          <td>${item.month}</td>
-          <td>${item.contractRevenue}</td>
-          <td>${item.directHire}</td>
-          <td>${item.paraHire}</td>
-          <td>${item.gp}</td>
-          <td>${item.commission}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-    function updateSummary() {
-      const monthVal = document.getElementById('monthSelector').value;
-      const employeeVal = document.getElementById('employeeSelector').value;
-      const [y, m] = monthVal.split('-').map(Number);
-      const filtered = placementsData.filter((p) => {
-        const d = new Date(p.date);
-        const matchesMonth = d.getFullYear() === y && d.getMonth() + 1 === m;
-        const matchesEmp = employeeVal === 'all' || p.employee === employeeVal;
-        return matchesMonth && matchesEmp;
-      });
-      const totals = filtered.reduce((acc, r) => {
-        acc.hours += Number(r.hours) || 0;
-        acc.revenue += Number(r.revenue) || 0;
-        acc.gp += Number(r.gp) || 0;
-        acc.commission += Number(r.commission) || 0;
-        return acc;
-      }, { hours: 0, revenue: 0, gp: 0, commission: 0 });
-      const html = `
-        <div class="card" style="padding: 16px;">
-          <h3 style="margin-bottom: 10px;">Summary for <span class="kbd">${new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(new Date(y, m-1, 1))}</span> — <span class="kbd">${employeeVal === 'all' ? 'All Employees' : employeeVal}</span></h3>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-            <div><div class="role-desc">Total Hours</div><div style="font-size:22px;">${totals.hours.toLocaleString()}</div></div>
-            <div><div class="role-desc">Revenue</div><div style="font-size:22px;">${fmtMoney(totals.revenue)}</div></div>
-            <div><div class="role-desc">Gross Profit</div><div style="font-size:22px;">${fmtMoney(totals.gp)}</div></div>
-            <div><div class="role-desc">Commission</div><div style="font-size:22px;">${fmtMoney(totals.commission)}</div></div>
-          </div>
-          <p style="margin-top:12px;color:#6c757d;">${filtered.length} placement${filtered.length===1?'':'s'} matched.</p>
-        </div>`;
-      document.getElementById('summaryContent').innerHTML = html;
-    }
-    function updatePlacements(list = placementsData) {
-      const tbody = document.getElementById('placementsTable');
-      tbody.innerHTML = '';
-      list.forEach((item) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.id}</td>
-          <td>${item.date}</td>
-          <td>${item.employee}</td>
-          <td>${item.client}</td>
-          <td>${item.hours}</td>
-          <td>${fmtMoney(item.revenue)}</td>
-          <td>${fmtMoney(item.gp)}</td>
-          <td>${fmtMoney(item.commission)}</td>
-          <td><span class="badge badge-employee">${item.status}</span></td>`;
-        tbody.appendChild(tr);
-      });
-      if (!list.length) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="9" style="text-align:center;color:#6c757d;">No placements to display.</td>`;
-        tbody.appendChild(tr);
-      }
-    }
-    function updateEmployees() {
-      const tbody = document.getElementById('employeesTable');
-      tbody.innerHTML = '';
-      employeeList.forEach((emp) => {
-        const badgeClass = emp.role === 'admin' ? 'badge-admin' : emp.role === 'manager' ? 'badge-manager' : 'badge-employee';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${emp.name}</td>
-          <td>${emp.email}</td>
-          <td><span class="kbd">${emp.username}</span></td>
-          <td><span class="badge ${badgeClass}">${emp.role.toUpperCase()}</span></td>
-          <td>${toTitle(emp.jobFunction)}</td>
-          <td><span class="badge badge-employee">${emp.status}</span></td>
-          <td>
-            <button class="btn btn-primary employee-edit-btn" data-id="${emp.id ?? ''}" data-name="${emp.name}" style="padding:4px 8px;font-size:12px;margin-right:5px;">Edit</button>
-            <button class="btn btn-danger employee-remove-btn" data-id="${emp.id ?? ''}" data-name="${emp.name}" style="padding:4px 8px;font-size:12px;">Remove</button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
-      if (!employeeList.length) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="7" style="text-align:center;color:#6c757d;">No employees.</td>`;
-        tbody.appendChild(tr);
-      }
-    }
 
-    // ===== Bullhorn API Functions =====
-    
-    // Test Bullhorn API connection
-    async function testBullhornConnection() {
-      if (!currentUser) { 
-        alert('Please sign in first.'); 
-        return; 
-      }
-      
-      const status = document.getElementById('connectionStatus');
-      const btn = document.getElementById('testConnectionBtn');
-      
-      btn.disabled = true;
-      btn.textContent = 'Testing...';
-      status.innerHTML = '<div style="color: #666;">Testing connection...</div>';
-      
-      try {
-        const response = await fetch('/api/test-bullhorn', {
-          method: 'GET',
-          credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          status.innerHTML = `
-            <div style="color: green; padding: 10px; background: #f0f9ff; border-radius: 4px;">
-              <strong>✓ Connection Successful</strong><br>
-              Connected to: ${data.rest_url || 'Bullhorn API'}
-            </div>`;
-        } else {
-          status.innerHTML = `
-            <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
-              <strong>✗ Connection Failed</strong><br>
-              ${data.error || 'Unknown error'}
-            </div>`;
-        }
-      } catch (error) {
-        status.innerHTML = `
-          <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
-            <strong>✗ Connection Error</strong><br>
-            ${error.message}
-          </div>`;
-      }
-      
-      btn.disabled = false;
-      btn.textContent = 'Test Connection';
-    }
-
-    // Get Bullhorn data summary
-    async function getBullhornSummary() {
-      if (!currentUser) { 
-        alert('Please sign in first.'); 
-        return; 
-      }
-      
-      const summary = document.getElementById('syncSummary');
-      const btn = document.getElementById('getSummaryBtn');
-      
-      btn.disabled = true;
-      btn.textContent = 'Loading...';
-      summary.innerHTML = '<div style="color: #666;">Getting data summary...</div>';
-      
-      try {
-        const response = await fetch('/api/bullhorn-summary', {
-          method: 'GET',
-          credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          const summaryData = data.summary;
-          summary.innerHTML = `
-            <div style="padding: 15px; background: #f0f9ff; border-radius: 4px;">
-              <h5 style="margin-bottom: 10px; color: var(--indigo);">Available Bullhorn Data</h5>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div>
-                  <div style="font-size: 24px; font-weight: 600; color: var(--aegean);">
-                    ${summaryData.permanent_placements_ytd?.toLocaleString() || '0'}
-                  </div>
-                  <div style="color: #666; font-size: 14px;">Permanent Placements (YTD)</div>
-                </div>
-                <div>
-                  <div style="font-size: 24px; font-weight: 600; color: var(--aegean);">
-                    ${summaryData.toa_records_current_month?.toLocaleString() || '0'}
-                  </div>
-                  <div style="color: #666; font-size: 14px;">TOA Records (Current Month)</div>
-                </div>
-              </div>
-            </div>`;
-        } else {
-          summary.innerHTML = `
-            <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
-              <strong>Error:</strong> ${data.error || 'Failed to get summary'}
-            </div>`;
-        }
-      } catch (error) {
-        summary.innerHTML = `
-          <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
-            <strong>Error:</strong> ${error.message}
-          </div>`;
-      }
-      
-      btn.disabled = false;
-      btn.textContent = 'Get Data Summary';
-    }
-
-    // Sync data from Bullhorn
-    async function syncBullhornData() {
-      if (!currentUser) { 
-        alert('Please sign in first.'); 
-        return; 
-      }
-      
-      const startDate = document.getElementById('syncStartDate').value;
-      const includeTOA = document.getElementById('includeTOA').checked;
-      const includePermanent = document.getElementById('includePermanent').checked;
-      
-      if (!includeTOA && !includePermanent) {
-        alert('Please select at least one data type to sync.');
-        return;
-      }
-      
-      const status = document.getElementById('syncStatus');
-      const btn = document.getElementById('syncBullhornBtn');
-      
-      btn.disabled = true;
-      btn.textContent = 'Syncing...';
-      status.innerHTML = '<div style="color: #666;">Syncing data from Bullhorn API...</div>';
-      
-      try {
-        const requestBody = {
-          include_toa: includeTOA,
-          include_permanent: includePermanent
-        };
-        
-        if (startDate) {
-          requestBody.start_date = startDate;
-        }
-        
-        const response = await fetch('/api/sync-bullhorn', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify(requestBody)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          status.innerHTML = `
-            <div style="color: green; padding: 15px; background: #f0f9ff; border-radius: 4px;">
-              <strong>✓ Sync Completed Successfully</strong><br>
-              Processed: ${data.processed} records<br>
-              Total fetched: ${data.total_fetched} records<br>
-              <small>Data has been added to your commission portal.</small>
-            </div>`;
-          
-          // Refresh the current page data
-          await refreshFromServer();
-          if (document.getElementById('currentPage').classList.contains('active')) {
-            updateCurrentMonth();
-          }
-          
-          // Also refresh the summary
-          getBullhornSummary();
-          
-        } else {
-          status.innerHTML = `
-            <div style="color: crimson; padding: 15px; background: #fff5f5; border-radius: 4px;">
-              <strong>✗ Sync Failed</strong><br>
-              ${data.error || 'Unknown error occurred'}
-            </div>`;
-        }
-      } catch (error) {
-        status.innerHTML = `
-          <div style="color: crimson; padding: 15px; background: #fff5f5; border-radius: 4px;">
-            <strong>✗ Sync Error</strong><br>
-            ${error.message}
-          </div>`;
-      }
-      
-      btn.disabled = false;
-      btn.textContent = 'Sync Data from Bullhorn';
-    }
-
-    // ===== Client-side CSV/XLSX parsing (optional demo) =====
-    const dropArea = document.getElementById('dropArea');
-    function handleFiles(files) {
-      const out = document.getElementById('uploadResults');
-      out.innerHTML = '';
-      const summaries = [];
-      [...files].forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          let rows = [];
-          if (file.name.endsWith('.csv')) {
-            const text = e.target.result;
-            rows = csvToRows(text);
-          } else {
-            const data = new Uint8Array(e.target.result);
-            const wb = XLSX.read(data, { type: 'array' });
-            const first = wb.Sheets[wb.SheetNames[0]];
-            rows = XLSX.utils.sheet_to_json(first, { defval: '', raw: true });
-          }
-          const before = placementsData.length;
-          const mapped = mapRowsToPlacements(rows);
-          if (mapped.length) {
-            placementsData = mergePlacements(placementsData, mapped);
-            persistAll();
-          }
-          const added = placementsData.length - before;
-          summaries.push(`<li><strong>${file.name}</strong>: ${added >= 0 ? added : 0} new/updated placements</li>`);
-          out.innerHTML = `<ul>${summaries.join('')}</ul>`;
-          updatePlacements();
-          persistAll();
-        };
-        if (file.name.endsWith('.csv')) reader.readAsText(file);
-        else reader.readAsArrayBuffer(file);
-      });
-    }
-    function csvToRows(text) {
-      const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
-      if (!lines.length) return [];
-      const headers = lines.shift().split(',').map((h) => h.trim());
-      return lines.map((line) => {
-        const cells = line.split(',');
-        const obj = {};
-        headers.forEach((h, i) => (obj[h] = (cells[i] || '').trim()));
-        return obj;
-      });
-    }
-    function mapRowsToPlacements(rows) {
-      const out = [];
-      rows.forEach((r, i) => {
-        const id = r.ID || r.Id || r.id || r["Placement ID"] || `UPL-${Date.now()}-${i}`;
-        const dateRaw = (r.Date || r.date || r["Start Date"] || r["End Date"] || r["Placement Date"] || r["Week Ending"] || r["WE Date"]);
-        const date = dateRaw ? String(dateRaw).slice(0,10) : new Date().toISOString().slice(0,10);
-        const employee = r.Employee || r["Employee Name"] || r.employee || r.Recruiter || 'Unknown';
-        const client = r.Client || r["Client Name"] || r.client || r.Customer || 'Unknown';
-        const hours = Number(r.Hours || r["Total Hours"] || r.hours || 0);
-        const revenue = Number(r.Revenue || r["Bill Amount"] || r["Bill Rate"] || r.revenue || 0);
-        const gp = Number(r.GP || r["Gross Profit"] || r.gp || 0);
-        const commission = Number(r.Commission || r.commission || 0);
-        const status = r.Status || r.status || 'Active';
-        out.push({ id, date, employee, client, hours, revenue, gp, commission, status });
-      });
-      return out;
-    }
-    function mergePlacements(existing, incoming) {
-      const byId = new Map(existing.map((p) => [p.id, p]));
-      incoming.forEach((p) => { byId.set(p.id, { ...byId.get(p.id), ...p }); });
-      return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
-    }
-
-    // ===== Events =====
+    // Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
-      // Set default start date to beginning of current year
+      // Set default start date
       const startDateInput = document.getElementById('syncStartDate');
       if (startDateInput) {
         const currentYear = new Date().getFullYear();
         startDateInput.value = `${currentYear}-01-01`;
       }
 
-      // Sign in
+      // Login
       document.getElementById('loginBtn').addEventListener('click', async () => {
         const u = document.getElementById('loginUsername').value;
         const p = document.getElementById('loginPassword').value;
         try {
           const user = await serverLogin(u, p);
           showAppFor(user);
-          try {
-            const cloud = await azureLoadState(u);
-            if (cloud && Array.isArray(cloud.employees)) employeeList = cloud.employees;
-            if (cloud && Array.isArray(cloud.placements)) placementsData = cloud.placements;
-          } catch(_) {}
-          await fetchEmployees();
-          await refreshFromServer();
         } catch (err) {
           alert(err.message || 'Invalid credentials');
         }
       });
-      document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+
+      // Role buttons
       document.querySelectorAll('.role-btn').forEach((btn) => btn.addEventListener('click', () => {
         document.getElementById('loginUsername').value = btn.dataset.user;
         document.getElementById('loginPassword').value = btn.dataset.pass;
         document.getElementById('loginBtn').click();
       }));
 
-      // Logout
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        try { await serverLogout(); } catch(_) {}
-        logoutUI();
-      });
-
-      // Nav
-      document.getElementById('navList').addEventListener('click', (e) => {
-        const li = e.target.closest('.nav-item');
-        if (!li) return;
-        setActivePage(li.dataset.page);
-      });
-      document.getElementById('summaryUpdateBtn').addEventListener('click', updateSummary);
-
-      // Employees (persistent ADD + DELETE)
-      document.getElementById('addEmployeeBtn').addEventListener('click', addEmployee);
-      document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('employee-remove-btn')) {
-          const id = e.target.getAttribute('data-id');
-          const name = e.target.getAttribute('data-name');
-          deleteEmployeeById(id, name);
-        }
-        if (e.target.classList.contains('employee-edit-btn')) {
-          alert('Edit wiring can be added similarly (PUT/PATCH).');
-        }
-      });
-
-      // Password generator
-      document.getElementById('genPassBtn').addEventListener('click', () => {
-        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-        let pwd = '';
-        for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-        document.getElementById('newEmployeePassword').value = pwd;
-        alert(`Generated password: ${pwd}`);
-      });
-
-      // Bullhorn API Event Listeners
-      document.getElementById('testConnectionBtn').addEventListener('click', testBullhornConnection);
-      document.getElementById('getSummaryBtn').addEventListener('click', getBullhornSummary);
-      document.getElementById('syncBullhornBtn').addEventListener('click', syncBullhornData);
-
-      // Upload: click or drag & drop (client demo)
-      const fi = document.getElementById('fileInput');
-      dropArea.addEventListener('click', () => fi.click());
-      fi.addEventListener('change', (e) => handleFiles(e.target.files));
-      ;['dragenter','dragover'].forEach((ev) => dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.style.background = '#f0f9ff'; }));
-      ;['dragleave','drop'].forEach((ev) => dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.style.background = 'transparent'; }));
-      dropArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
-
-      // Server upload form -> POST /api/upload
-      const serverForm = document.getElementById('serverUploadForm');
-      serverForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!currentUser) { alert('Please sign in first.'); return; }
-        const inp = document.getElementById('serverFile');
-        if (!inp.files.length) { alert('Choose a file'); return; }
-        const fd = new FormData(); fd.append('file', inp.files[0]);
-        const status = document.getElementById('serverUploadStatus');
-        status.textContent = 'Uploading...'; status.style.color = '';
+      // Test connection
+      document.getElementById('testConnectionBtn').addEventListener('click', async () => {
+        const status = document.getElementById('connectionStatus');
+        const btn = document.getElementById('testConnectionBtn');
+        
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+        status.innerHTML = '<div style="color: #666;">Testing connection...</div>';
+        
         try {
-          const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
-          const data = await res.json().catch(()=> ({}));
-          if (!res.ok || data.success === false) {
-            status.textContent = `Upload failed: ${data.error || res.statusText}`; status.style.color = 'crimson'; return;
+          const response = await fetch('/api/test-bullhorn', {
+            method: 'GET',
+            credentials: 'same-origin'
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            status.innerHTML = `
+              <div style="color: green; padding: 10px; background: #f0f9ff; border-radius: 4px;">
+                <strong>✓ Connection Successful</strong>
+              </div>`;
+          } else {
+            status.innerHTML = `
+              <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
+                <strong>✗ Connection Failed</strong><br>
+                ${data.error || 'Unknown error'}
+              </div>`;
           }
-          status.textContent = `Uploaded OK. Processed rows: ${data.processed || 0}`; status.style.color = 'green';
-          await refreshFromServer();
-          setActivePage('current');
-        } catch (err) {
-          status.textContent = `Upload error: ${String(err)}`; status.style.color = 'crimson';
+        } catch (error) {
+          status.innerHTML = `
+            <div style="color: crimson; padding: 10px; background: #fff5f5; border-radius: 4px;">
+              <strong>✗ Connection Error</strong><br>
+              ${error.message}
+            </div>`;
         }
+        
+        btn.disabled = false;
+        btn.textContent = 'Test Connection';
       });
     });
-
-    // Persistent ADD
-    async function addEmployee() {
-      const name = document.getElementById('newEmployeeName').value.trim();
-      const email = document.getElementById('newEmployeeEmail').value.trim();
-      const username = document.getElementById('newEmployeeUsername').value.trim();
-      const password = document.getElementById('newEmployeePassword').value.trim();
-      const role = document.getElementById('newEmployeeRole').value;
-      const jobFunction = document.getElementById('newEmployeeJobFunction').value;
-
-      if (!name || !email || !username || !password) { alert('Please fill in all fields'); return; }
-      if (!email.includes('@')) { alert('Please enter a valid email address'); return; }
-      if (password.length < 8) { alert('Password must be at least 8 characters long'); return; }
-      if (!currentUser) { alert('Please sign in first.'); return; }
-
-      try {
-        const res = await fetch('/api/employees', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, username, password, role, job_function: jobFunction })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.success === false) {
-          alert(`Add failed: ${data.error || res.statusText}`); return;
-        }
-        document.getElementById('newEmployeeName').value = '';
-        document.getElementById('newEmployeeEmail').value = '';
-        document.getElementById('newEmployeeUsername').value = '';
-        document.getElementById('newEmployeePassword').value = '';
-        document.getElementById('newEmployeeRole').value = 'employee';
-        document.getElementById('newEmployeeJobFunction').value = 'recruiter';
-        await fetchEmployees();
-        alert(`Employee "${name}" added successfully with ${role} access level`);
-      } catch (err) {
-        alert(`Error adding employee: ${String(err)}`);
-      }
-    }
   </script>
 </body>
 </html>

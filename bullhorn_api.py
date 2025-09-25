@@ -253,21 +253,19 @@ def get_bullhorn_commission_data(
 # ========================= Back Office (Timesheets) =========================
 class BackOfficeAPI:
     """
-    Minimal Back Office / Timesheets client.
+    Enhanced Back Office / Timesheets client with better error handling.
 
     ENV VARS required:
       BBO_USERNAME, BBO_PASSWORD, BBO_API_KEY, BBO_REST_DOMAIN
     Optional:
       BBO_AUTH_DOMAIN, BBO_TIMESHEETS_BASE (defaults to BBO_REST_DOMAIN)
-
-    NOTE: Replace endpoint paths to match your Back Office tenant’s API.
     """
     def __init__(self):
         self.username = os.environ.get("BBO_USERNAME")
         self.password = os.environ.get("BBO_PASSWORD")
         self.api_key  = os.environ.get("BBO_API_KEY")
-        self.auth_domain = os.environ.get("BBO_AUTH_DOMAIN")  # may be unused
-        self.rest_domain = os.environ.get("BBO_REST_DOMAIN")  # e.g., https://rest-east.bullhornstaffing.com/
+        self.auth_domain = os.environ.get("BBO_AUTH_DOMAIN")
+        self.rest_domain = os.environ.get("BBO_REST_DOMAIN")
         self.timesheets_base = os.environ.get("BBO_TIMESHEETS_BASE", (self.rest_domain or "")).rstrip("/")
 
         if not all([self.username, self.password, self.api_key, self.rest_domain]):
@@ -281,17 +279,72 @@ class BackOfficeAPI:
             "Content-Type": "application/json",
         }
 
-    def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        url = f"{self.timesheets_base}{path}"
-        resp = requests.get(url, headers=self.base_headers, params=params, timeout=60)
-        if resp.status_code >= 400:
-            raise RuntimeError(f"BBO GET {path} failed: {resp.status_code} {resp.text[:500]}")
-        return resp.json() if resp.text else {}
+    def _get_with_fallback(self, endpoint_variants: List[str], params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Try multiple endpoint variants and return the first successful response."""
+        last_error = None
+        
+        for endpoint in endpoint_variants:
+            url = f"{self.timesheets_base}{endpoint}"
+            try:
+                logger.info(f"Trying BBO endpoint: {url}")
+                resp = requests.get(url, headers=self.base_headers, params=params, timeout=60)
+                
+                if resp.status_code == 200:
+                    logger.info(f"BBO endpoint successful: {endpoint}")
+                    return resp.json() if resp.text else {}
+                elif resp.status_code == 503:
+                    last_error = f"Service unavailable (503) at {endpoint}"
+                    logger.warning(last_error)
+                    continue
+                elif resp.status_code == 404:
+                    last_error = f"Endpoint not found (404): {endpoint}"
+                    logger.warning(last_error)
+                    continue
+                elif resp.status_code in [401, 403]:
+                    last_error = f"Authentication failed ({resp.status_code}) at {endpoint}"
+                    logger.error(last_error)
+                    continue
+                else:
+                    last_error = f"HTTP {resp.status_code} at {endpoint}: {resp.text[:200]}"
+                    logger.warning(last_error)
+                    continue
+                    
+            except requests.exceptions.Timeout:
+                last_error = f"Timeout connecting to {endpoint}"
+                logger.warning(last_error)
+                continue
+            except requests.exceptions.ConnectionError:
+                last_error = f"Connection error to {endpoint}"
+                logger.warning(last_error)
+                continue
+            except Exception as e:
+                last_error = f"Error with {endpoint}: {str(e)}"
+                logger.warning(last_error)
+                continue
+        
+        # If all endpoints failed
+        if "503" in str(last_error):
+            raise RuntimeError("Back Office service temporarily unavailable (503). Please try again later.")
+        elif "404" in str(last_error):
+            raise RuntimeError("Back Office timesheets endpoint not found. Please verify your tenant configuration.")
+        elif "401" in str(last_error) or "403" in str(last_error):
+            raise RuntimeError("Back Office authentication failed. Please verify your credentials.")
+        else:
+            raise RuntimeError(f"All BBO endpoints failed. Last error: {last_error}")
 
     def ping(self) -> bool:
-        # Adjust to a harmless health/status endpoint from your BBO docs.
+        """Test connectivity using various health/status endpoints."""
+        health_endpoints = [
+            "/health",
+            "/api/v1/health", 
+            "/api/health",
+            "/status",
+            "/api/v1/status",
+            "/ping"
+        ]
+        
         try:
-            _ = self._get("/api/v1/health")
+            self._get_with_fallback(health_endpoints)
             return True
         except Exception as e:
             logger.warning(f"BBO ping failed (not fatal): {e}")
@@ -301,8 +354,7 @@ class BackOfficeAPI:
         self, start_date: datetime, end_date: datetime, page: int = 1, page_size: int = 500
     ) -> Dict[str, Any]:
         """
-        Replace the path with the correct one per your BBO API doc.
-        Expected shape like: {'data':[...], 'nextPage': bool/int} or similar.
+        Fetch time entries with multiple endpoint fallbacks.
         """
         params = {
             "dateFrom": start_date.strftime("%Y-%m-%d"),
@@ -310,98 +362,158 @@ class BackOfficeAPI:
             "page": page,
             "pageSize": min(page_size, 500),
         }
-        return self._get("/api/v1/timesheets/entries", params=params)
+        
+        # Try multiple common endpoint patterns
+        endpoint_variants = [
+            "/api/v1/timesheets/entries",
+            "/api/v1.0/timesheets/entries",
+            "/api/timesheets/entries", 
+            "/v1/timesheets/entries",
+            "/timesheets/entries",
+            "/api/v1/timesheet/entries",
+            "/api/timeentries",
+            "/api/v1/timeentries"
+        ]
+        
+        return self._get_with_fallback(endpoint_variants, params=params)
 
     def get_commission_rows_from_timesheets(
         self, start_date: datetime, end_date: datetime
     ) -> List[Dict[str, Any]]:
+        """
+        Fetch and aggregate timesheet data with enhanced error handling.
+        """
         results: List[Dict[str, Any]] = []
         page = 1
         aggregate: Dict[str, Dict[str, Any]] = {}
 
-        while True:
-            payload = self.list_time_entries(start_date, end_date, page=page)
-            entries = payload.get("data") or payload.get("entries") or []
-            if not entries:
-                break
+        try:
+            while True:
+                try:
+                    payload = self.list_time_entries(start_date, end_date, page=page)
+                except RuntimeError as e:
+                    if "503" in str(e):
+                        # Service unavailable - return empty but don't crash
+                        logger.warning("BBO service unavailable, returning empty results")
+                        return []
+                    else:
+                        # Re-raise other errors
+                        raise e
+                
+                entries = payload.get("data") or payload.get("entries") or []
+                if not entries:
+                    break
 
-            for e in entries:
-                # date normalization
-                date_worked = e.get("dateWorked") or e.get("workDate")
-                dt = None
-                if date_worked:
+                for e in entries:
                     try:
-                        dt = datetime.fromisoformat(str(date_worked)[:10])
-                    except Exception:
+                        # Date normalization with better error handling
+                        date_worked = e.get("dateWorked") or e.get("workDate")
                         dt = None
-                if not dt:
-                    continue
+                        if date_worked:
+                            try:
+                                if isinstance(date_worked, str):
+                                    dt = datetime.fromisoformat(date_worked[:10])
+                                elif hasattr(date_worked, 'year'):  # datetime object
+                                    dt = date_worked
+                            except Exception:
+                                logger.warning(f"Could not parse date: {date_worked}")
+                                continue
+                        
+                        if not dt:
+                            continue
 
-                hours = float(e.get("hours") or e.get("quantity") or 0.0)
-                bill_amt = float(e.get("billAmount") or e.get("bill") or 0.0)
-                pay_amt  = float(e.get("payAmount")  or e.get("pay")  or 0.0)
+                        hours = float(e.get("hours") or e.get("quantity") or 0.0)
+                        bill_amt = float(e.get("billAmount") or e.get("bill") or 0.0)
+                        pay_amt = float(e.get("payAmount") or e.get("pay") or 0.0)
 
-                placement = e.get("placement") or {}
-                employment_type = placement.get("employmentType") or "Contract"
-                client_name = (placement.get("clientCorporation") or {}).get("name") or e.get("clientName") or ""
-                primary_employee = (
-                    placement.get("correlatedCustomText38")
-                    or placement.get("correlatedCustomText34")
-                    or e.get("ownerName") or ""
-                )
-                if not primary_employee:
-                    continue
+                        placement = e.get("placement") or {}
+                        employment_type = placement.get("employmentType") or "Contract"
+                        client_name = (placement.get("clientCorporation") or {}).get("name") or e.get("clientName") or ""
+                        primary_employee = (
+                            placement.get("correlatedCustomText38")
+                            or placement.get("correlatedCustomText34")
+                            or e.get("ownerName") or ""
+                        )
+                        
+                        if not primary_employee:
+                            continue
 
-                month_label = dt.strftime("%B")
-                year_val = dt.year
-                key = f"{primary_employee}|{client_name}|{month_label}|{year_val}|{employment_type}"
+                        month_label = dt.strftime("%B")
+                        year_val = dt.year
+                        key = f"{primary_employee}|{client_name}|{month_label}|{year_val}|{employment_type}"
 
-                if key not in aggregate:
-                    aggregate[key] = {
-                        'employee_name': primary_employee,
-                        'client': client_name,
-                        'employment_type': employment_type,
-                        'month': month_label,
-                        'year': year_val,
-                        'total_hours': 0.0,
-                        'bill_sum': 0.0,
-                        'pay_sum': 0.0
-                    }
-                g = aggregate[key]
-                g["total_hours"] += hours
-                g["bill_sum"] += bill_amt
-                g["pay_sum"]  += pay_amt
+                        if key not in aggregate:
+                            aggregate[key] = {
+                                'employee_name': primary_employee,
+                                'client': client_name,
+                                'employment_type': employment_type,
+                                'month': month_label,
+                                'year': year_val,
+                                'total_hours': 0.0,
+                                'bill_sum': 0.0,
+                                'pay_sum': 0.0
+                            }
+                        g = aggregate[key]
+                        g["total_hours"] += hours
+                        g["bill_sum"] += bill_amt
+                        g["pay_sum"] += pay_amt
+                        
+                    except Exception as entry_error:
+                        logger.warning(f"Error processing timesheet entry: {entry_error}")
+                        continue
 
-            next_page = payload.get("nextPage") or payload.get("hasMore")
-            if next_page in (True, "true") or (isinstance(next_page, int) and next_page > page):
-                page = page + 1 if not isinstance(next_page, int) else next_page
+                # Check for next page
+                next_page = payload.get("nextPage") or payload.get("hasMore")
+                if next_page in (True, "true") or (isinstance(next_page, int) and next_page > page):
+                    page = page + 1 if not isinstance(next_page, int) else next_page
+                else:
+                    break
+
+        except Exception as e:
+            logger.error(f"Error fetching BBO timesheet data: {e}")
+            # Return partial results if we got some data
+            if aggregate:
+                logger.info(f"Returning partial BBO results: {len(aggregate)} aggregated records")
             else:
-                break
+                return []
 
+        # Convert aggregated data to commission records
         for g in aggregate.values():
-            gp = g["bill_sum"] - g["pay_sum"]
-            hourly_gp = (gp / g["total_hours"]) if g["total_hours"] > 0 else 0.0
-            commission = round(gp * 0.10, 2)
-            results.append({
-                "employee_name": g["employee_name"],
-                "client": g["client"],
-                "status": f"Contract ({g['employment_type']})",
-                "gp": round(gp, 2),
-                "hourly_gp": round(hourly_gp, 2),
-                "commission_rate": "10.00%",
-                "commission": commission,
-                "month": g["month"],
-                "day": 1,
-                "year": g["year"],
-                "placement_id": None
-            })
+            try:
+                gp = g["bill_sum"] - g["pay_sum"]
+                hourly_gp = (gp / g["total_hours"]) if g["total_hours"] > 0 else 0.0
+                commission = round(gp * 0.10, 2)
+                results.append({
+                    "employee_name": g["employee_name"],
+                    "client": g["client"],
+                    "status": f"Contract ({g['employment_type']})",
+                    "gp": round(gp, 2),
+                    "hourly_gp": round(hourly_gp, 2),
+                    "commission_rate": "10.00%",
+                    "commission": commission,
+                    "month": g["month"],
+                    "day": 1,
+                    "year": g["year"],
+                    "placement_id": None
+                })
+            except Exception as calc_error:
+                logger.warning(f"Error calculating commission for {g.get('employee_name')}: {calc_error}")
+                continue
+
+        logger.info(f"Successfully processed {len(results)} BBO commission records")
         return results
 
 def get_bbo_commission_data(start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
-    api = BackOfficeAPI()
-    # ping() may 404 on some tenants; that’s fine.
+    """Get Back Office commission data with enhanced error handling."""
     try:
-        _ = api.ping()
-    except Exception:
-        pass
-    return api.get_commission_rows_from_timesheets(start_date, end_date)
+        api = BackOfficeAPI()
+        # Don't fail if ping fails - the main endpoint might still work
+        try:
+            api.ping()
+        except Exception:
+            logger.info("BBO ping failed but continuing with main request")
+        
+        return api.get_commission_rows_from_timesheets(start_date, end_date)
+    except Exception as e:
+        logger.error(f"BBO commission data error: {e}")
+        return []

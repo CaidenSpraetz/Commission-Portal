@@ -1,5 +1,3 @@
-from flask import Flask, render_template, request, jsonify, session
-from flask_sqlalchemy import SQLAlchemy
 import os
 import hashlib
 import logging
@@ -16,12 +14,10 @@ log = logging.getLogger("commission_portal")
 
 # ================= Optional Bullhorn modules =================
 try:
-    # Expecting these from your bullhorn_api.py
     from bullhorn_api import (
         get_bullhorn_commission_data,
         BullhornAPI,
     )
-    # Optional: newer BBO client may be in your module; we will also provide a local fallback.
     try:
         from bullhorn_api import BBOClient as ExternalBBOClient  # optional
     except Exception:
@@ -75,22 +71,27 @@ class CommissionData(db.Model):
     month = db.Column(db.String(20))
     day = db.Column(db.Integer)
 
-    # New columns used by sync & UI
+    # Newer schema fields
     year = db.Column(db.Integer, default=datetime.now().year)
-    placement_id = db.Column(db.String(50))        # ATS placement id when available
-    unique_key = db.Column(db.String(120), index=True, unique=True)  # de-dup key
-    employee_id = db.Column(db.Integer)            # FK to Employee.id (kept simple for SQLite)
+    placement_id = db.Column(db.String(50))
+    unique_key = db.Column(db.String(120), index=True, unique=True)
+    employee_id = db.Column(db.Integer)
 
-# ================== BBO (Back Office) Client – reads YOUR env var names ==================
+# ================== BBO (Back Office) Client – robust endpoint discovery ==================
 class BBOClient:
     """
-    Uses your env var names:
-      - BBO_TIMESHEETS_BASE (preferred) or BBO_REST_DOMAIN -> e.g. https://api.bbo.bullhornstaffing.com
-      - BBO_API_KEY                                        -> your API key
-      - BBO_API_VERSION (optional)                         -> defaults to v1.0
+    Env vars you provided:
+      - BBO_TIMESHEETS_BASE (preferred) or BBO_REST_DOMAIN
+        e.g. https://api.bbo.bullhornstaffing.com
+      - BBO_API_KEY
+      - (optional) BBO_API_VERSION -> default 'v1.0'
+    Supports BOTH styles:
+      A) {base}/{version}/Timesheets/Entries
+      B) {base}/api/{version_short}/timesheets/entries
     """
     def __init__(self):
         base = os.environ.get("BBO_TIMESHEETS_BASE") or os.environ.get("BBO_REST_DOMAIN") or "https://api.bbo.bullhornstaffing.com"
+        # strip trailing slashes & stray colons (some bases come as '...com:')
         self.base_url = base.rstrip("/:").strip()
         self.version = (os.environ.get("BBO_API_VERSION") or "v1.0").strip().strip("/")
         self.api_key = os.environ.get("BBO_API_KEY")
@@ -99,55 +100,140 @@ class BBOClient:
         if not self.api_key:
             raise ValueError("Missing Back Office (Timesheets) env vars: BBO_API_KEY")
 
-        import requests  # local import to avoid issues if requests missing
+        import requests
         self._requests = requests
         self._session = requests.Session()
 
-    def _url(self, path: str) -> str:
-        return f"{self.base_url}/{self.version}{path}"
+    def _version_short(self):
+        # v1.0 -> v1, 1.0 -> 1, v2 -> v2
+        v = self.version.lower()
+        if v.startswith("v"):
+            vnum = v[1:]
+        else:
+            vnum = v
+        vnum = vnum.split(".")[0] if "." in vnum else vnum
+        return f"v{vnum}" if not v.startswith("v") else (f"v{vnum}" if "." in v else v)
 
-    def _headers(self) -> dict:
+    def _candidate_urls(self, path_variants):
+        """
+        Build a list of candidate full URLs for the given path variants, covering:
+          - {base}/{version}/{Path}
+          - {base}/api/{vshort}/{path}
+          - lower/upper case variations supplied via path_variants
+        """
+        urls = []
+        b = self.base_url
+        v = self.version
+        vs = self._version_short()
+
+        # If base already includes '/api', also try with and without
+        bases = {b}
+        if "/api" not in b:
+            bases.add(f"{b}/api")
+        else:
+            bases.add(b.replace("/api", ""))
+
+        for base_candidate in bases:
+            for pv in path_variants:
+                # Style A
+                urls.append(f"{base_candidate}/{v}{pv}")
+                # Style B (api/vX)
+                urls.append(f"{base_candidate}/{vs}{pv}")
+
+        # Normalize: collapse multiple slashes
+        clean = []
+        for u in urls:
+            u = u.replace("://", "§§").replace("//", "/").replace("§§", "://")
+            clean.append(u.rstrip("/"))
+        # Deduplicate preserving order
+        seen = set()
+        out = []
+        for u in clean:
+            if u not in seen:
+                seen.add(u)
+                out.append(u)
+        return out
+
+    def _headers(self):
         return {"x-api-key": self.api_key, "Accept": "application/json"}
 
-    def ping(self) -> bool:
-        # Some tenants expose /Ping; if not, fall back to /Health
-        for endpoint in ("/Ping", "/Health", "/health"):
-            url = self._url(endpoint)
+    def diagnose_connectivity(self):
+        """
+        Try several endpoints with HEAD then GET.
+        Treat any 2xx–4xx as 'reachable' (auth/params may fail but the host is up).
+        """
+        path_variants = [
+            "/Timesheets/Entries", "/timesheets/entries",
+            "/Timesheets", "/timesheets",
+            "/Documentation/source", "/swagger", "/openapi.json", "/",
+        ]
+        urls = self._candidate_urls(path_variants)
+
+        last_err = None
+        for url in urls:
             try:
-                r = self._session.get(url, headers=self._headers(), timeout=self.timeout)
-                if r.status_code == 200:
-                    return True
+                r = self._session.head(url, headers=self._headers(), timeout=self.timeout, allow_redirects=True)
+                if 200 <= r.status_code < 500:
+                    return {"reachable": True, "url": url, "method": "HEAD", "status": r.status_code}
+                # try GET if HEAD is not allowed
+                r = self._session.get(url, headers=self._headers(), timeout=self.timeout, allow_redirects=True)
+                if 200 <= r.status_code < 500:
+                    return {"reachable": True, "url": url, "method": "GET", "status": r.status_code}
+                last_err = f"{url} -> {r.status_code}"
             except Exception as e:
-                last_err = f"{endpoint} -> {e}"
+                last_err = f"{url} -> {e}"
                 continue
-        raise RuntimeError("BBO ping failed; endpoints /Ping & /Health not available")
+        raise RuntimeError(last_err or "No reachable BBO endpoint found")
+
+    def ping(self) -> bool:
+        # Backwards-compatible boolean for /api/test-bbo route
+        try:
+            diag = self.diagnose_connectivity()
+            return bool(diag.get("reachable"))
+        except Exception:
+            return False
 
     def get_time_entries(self, start_date: datetime, end_date: datetime):
-        # Try a few parameter variants (tenants differ)
+        # Build candidate time-entry endpoints
+        path_variants = ["/Timesheets/Entries", "/timesheets/entries"]
+        urls = self._candidate_urls(path_variants)
+
+        # Accept common param shapes
         params_variants = [
             {"from": start_date.strftime("%Y-%m-%d"), "to": end_date.strftime("%Y-%m-%d")},
             {"startDate": start_date.strftime("%Y-%m-%d"), "endDate": end_date.strftime("%Y-%m-%d")},
             {"start": start_date.strftime("%Y-%m-%d"), "end": end_date.strftime("%Y-%m-%d")},
         ]
-        last_err = None
-        for params in params_variants:
-            url = self._url("/Timesheets/Entries")
-            try:
-                r = self._session.get(url, headers=self._headers(), params=params, timeout=self.timeout)
-                if r.status_code == 200:
-                    data = r.json()
-                    if isinstance(data, dict) and "data" in data:
-                        return data["data"]
-                    if isinstance(data, list):
-                        return data
-                    return []
-                else:
-                    last_err = f"GET {url} failed: {r.status_code} {r.text[:200]}"
-            except Exception as e:
-                last_err = str(e)
-        raise RuntimeError(last_err or "Unknown error calling BBO Timesheets/Entries")
 
-# If your bullhorn_api.py already defines BBOClient, use it; else fallback to our local class
+        last_err = None
+        for url in urls:
+            for params in params_variants:
+                try:
+                    r = self._session.get(url, headers=self._headers(), params=params, timeout=self.timeout)
+                    # 200 OK: success
+                    if r.status_code == 200:
+                        data = r.json()
+                        if isinstance(data, dict) and "data" in data:
+                            return data["data"]
+                        if isinstance(data, list):
+                            return data
+                        return []
+                    # 204 No Content => empty
+                    if r.status_code == 204:
+                        return []
+                    # 4xx often means auth/param issues but connectivity is OK
+                    if 400 <= r.status_code < 500:
+                        # If it's a parameter error (400), try next param shape
+                        last_err = f"{url} {r.status_code} {r.text[:200]}"
+                        continue
+                    # 5xx: try next URL
+                    last_err = f"{url} {r.status_code} {r.text[:200]}"
+                except Exception as e:
+                    last_err = f"{url} -> {e}"
+                    continue
+        raise RuntimeError(last_err or "Unable to fetch BBO time entries")
+
+# Prefer BBOClient from bullhorn_api.py if present
 if ExternalBBOClient:
     BBOClient = ExternalBBOClient  # type: ignore
 
@@ -217,18 +303,10 @@ def _infer_commission_rate(status, gp, provided_rate):
         return "9.75%", 0.0975
     return "10.00%", 0.10
 
-def _month_num(name: str) -> int:
-    try:
-        dt = datetime.strptime(name, "%B")
-        return dt.month
-    except Exception:
-        return datetime.now().month
-
 def _safe_add_column(table: str, column: str, ddl_type: str):
-    """Add column to SQLite table if missing."""
     try:
         res = db.session.execute(db.text(f"PRAGMA table_info({table});")).fetchall()
-        cols = [r[1] for r in res]  # name is second column
+        cols = [r[1] for r in res]
         if column not in cols:
             db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type};"))
             db.session.commit()
@@ -242,12 +320,10 @@ def _employee_id_by_name(name: str):
     return emp.id if emp else None
 
 def _dedupe_key(rec: dict) -> str:
-    # Prefer placement_id if present
     pid = rec.get("placement_id")
     if pid:
         prefix = "perm" if rec.get("status","").lower().startswith("perm") else "contract"
         return f"{prefix}:{pid}"
-    # Else, make a stable key by fields
     year = rec.get("year") or datetime.now().year
     month = rec.get("month") or "Unknown"
     day = rec.get("day") or 1
@@ -386,9 +462,7 @@ def upload_file():
 
         if filename.endswith('.csv'):
             df = pd.read_csv(saved_path)
-        elif filename.endswith('.xlsx'):
-            df = pd.read_excel(saved_path, engine='openpyxl')
-        elif filename.endswith('.xls'):
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
             df = pd.read_excel(saved_path, engine='openpyxl')
         else:
             return jsonify({'success': False, 'error': 'Unsupported file format'})
@@ -448,7 +522,6 @@ def upload_file():
                     day=day_num,
                     year=year_num,
                 )
-                # de-dupe key (file uploads usually don't have placement_id)
                 rec.unique_key = _dedupe_key({
                     "employee_name": rec.employee_name,
                     "client": rec.client,
@@ -495,23 +568,27 @@ def test_bullhorn_connection():
 
 @app.route('/api/test-bbo', methods=['GET'])
 def test_bbo_connection():
-    """Ping Back Office with API key using your env vars."""
+    """Robust BBO connectivity diagnostic (no hard dependency on /Ping or /Health)."""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
     try:
         client = BBOClient()
-        ok = client.ping()
-        if ok:
-            return jsonify({'success': True, 'message': 'BBO Ping OK'})
-        return jsonify({'success': False, 'error': 'BBO ping failed'})
+        diag = client.diagnose_connectivity()
+        return jsonify({
+            'success': True,
+            'message': 'BBO is reachable',
+            'endpoint': diag.get('url'),
+            'http_method': diag.get('method'),
+            'status': diag.get('status')
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': f'BBO test failed: {e}'})
 
 @app.route('/api/bbo-summary', methods=['GET'])
 def bbo_summary():
-    """Quick summary of time entries from BBO for the recent lookback window."""
+    """Quick summary of time entries from BBO for a recent lookback window."""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
@@ -568,7 +645,6 @@ def sync_bullhorn_data():
         else:
             start_date = datetime(datetime.now().year, 1, 1)
 
-        # Fetch combined data via helper in bullhorn_api.py (should call ATS + BBO)
         all_records = get_bullhorn_commission_data(
             include_contract_time=include_contract_time,
             include_permanent=include_permanent,
@@ -579,7 +655,6 @@ def sync_bullhorn_data():
 
         processed = 0
         for rec in all_records:
-            # normalize and map
             employee_name = rec.get('employee_name') or rec.get('employee') or ""
             client = rec.get('client') or ""
             status = rec.get('status') or "New"
@@ -603,7 +678,6 @@ def sync_bullhorn_data():
                 "placement_id": placement_id
             })
 
-            # de-dup
             if CommissionData.query.filter_by(unique_key=unique_key).first():
                 continue
 
@@ -652,7 +726,6 @@ def get_bullhorn_summary():
         perm_where = f"employmentType='Permanent' AND dateBegin>={start_of_year}"
         _, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
 
-        # No ATS time entity for many tenants; we return 0 here and rely on BBO summary endpoint.
         return jsonify({
             'success': True,
             'summary': {
@@ -668,7 +741,6 @@ def get_bullhorn_summary():
 def init_db():
     with app.app_context():
         db.create_all()
-        # Self-heal columns if DB existed from older schema
         _safe_add_column("commission_data", "year", "INTEGER")
         _safe_add_column("commission_data", "placement_id", "VARCHAR(50)")
         _safe_add_column("commission_data", "unique_key", "VARCHAR(120)")

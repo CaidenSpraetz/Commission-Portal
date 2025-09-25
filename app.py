@@ -123,9 +123,9 @@ class BBOClient:
           - lower/upper case variations supplied via path_variants
         """
         urls = []
-        b = self.base_url
-        v = self.version
-        vs = self._version_short()
+        b = self.base_url.rstrip('/')  # Ensure no trailing slash
+        v = self.version.strip('/')    # Ensure no leading/trailing slashes
+        vs = self._version_short().strip('/')
 
         # If base already includes '/api', also try with and without
         bases = {b}
@@ -135,17 +135,29 @@ class BBOClient:
             bases.add(b.replace("/api", ""))
 
         for base_candidate in bases:
+            base_candidate = base_candidate.rstrip('/')  # Ensure no trailing slash
             for pv in path_variants:
-                # Style A
-                urls.append(f"{base_candidate}/{v}{pv}")
-                # Style B (api/vX)
-                urls.append(f"{base_candidate}/{vs}{pv}")
+                pv = pv.lstrip('/')  # Ensure no leading slash
+                # Style A: {base}/{version}/{path}
+                if v:
+                    urls.append(f"{base_candidate}/{v}/{pv}")
+                urls.append(f"{base_candidate}/{pv}")
+                # Style B: {base}/api/{vshort}/{path}  
+                if vs:
+                    urls.append(f"{base_candidate}/api/{vs}/{pv}")
 
-        # Normalize: collapse multiple slashes
+        # Clean up any double slashes but preserve protocol
         clean = []
         for u in urls:
-            u = u.replace("://", "§§").replace("//", "/").replace("§§", "://")
+            # Temporarily replace protocol to avoid breaking it
+            u = u.replace("://", "§§PROTOCOL§§")
+            # Remove multiple slashes
+            while "//" in u:
+                u = u.replace("//", "/")
+            # Restore protocol
+            u = u.replace("§§PROTOCOL§§", "://")
             clean.append(u.rstrip("/"))
+        
         # Deduplicate preserving order
         seen = set()
         out = []
@@ -600,6 +612,20 @@ def bbo_summary():
         end_date = datetime.utcnow().date()
         start_date = end_date - timedelta(days=lookback_days)
         
+        # Debug environment variables
+        bbo_rest_domain = os.environ.get("BBO_REST_DOMAIN")
+        bbo_timesheets_base = os.environ.get("BBO_TIMESHEETS_BASE")
+        bbo_api_key = os.environ.get("BBO_API_KEY")
+        
+        log.info(f"BBO Environment - REST_DOMAIN: {bbo_rest_domain}, TIMESHEETS_BASE: {bbo_timesheets_base}, API_KEY: {'***' if bbo_api_key else 'MISSING'}")
+        
+        if not bbo_rest_domain and not bbo_timesheets_base:
+            return jsonify({
+                'success': False,
+                'error': 'Missing BBO configuration. Set BBO_REST_DOMAIN or BBO_TIMESHEETS_BASE environment variable.',
+                'error_type': 'configuration_missing'
+            })
+        
         if BULLHORN_AVAILABLE:
             # Use enhanced BackOfficeAPI from bullhorn_api.py
             from bullhorn_api import get_bbo_commission_data
@@ -652,6 +678,21 @@ def bbo_summary():
                 }
             })
             
+    except ValueError as ve:
+        # Handle configuration/URL validation errors
+        error_message = str(ve)
+        if "Invalid BBO URL" in error_message or "Missing BBO" in error_message:
+            return jsonify({
+                'success': False,
+                'error': f'BBO Configuration Error: {error_message}',
+                'error_type': 'configuration_error'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Configuration Error: {error_message}',
+                'error_type': 'configuration_error'
+            })
     except Exception as e:
         error_message = str(e)
         
@@ -662,6 +703,12 @@ def bbo_summary():
                 'error': 'Back Office service is temporarily unavailable. Please try again later.',
                 'error_type': 'service_unavailable',
                 'retry_suggested': True
+            })
+        elif "Invalid URL" in error_message or "No host supplied" in error_message:
+            return jsonify({
+                'success': False,
+                'error': f'BBO URL Configuration Error: {error_message}. Please check your BBO_REST_DOMAIN or BBO_TIMESHEETS_BASE environment variable.',
+                'error_type': 'url_configuration_error'
             })
         elif "404" in error_message:
             return jsonify({

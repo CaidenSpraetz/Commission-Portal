@@ -50,6 +50,11 @@
     .badge-manager{background:var(--warning);color:#212529}
     .badge-employee{background:var(--aegean)}
     .kbd{background:var(--light-gray);padding:2px 6px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+    .alert{padding:12px;border-radius:6px;margin:10px 0;}
+    .alert-warning{background:#fff3cd;border:1px solid #ffeaa7;color:#856404;}
+    .alert-error{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;}
+    .alert-success{background:#d4edda;border:1px solid #c3e6cb;color:#155724;}
+    .alert-info{background:#d1ecf1;border:1px solid #bee5eb;color:#0c5460;}
     @media (max-width:768px){
       .nav-list{flex-wrap:wrap}
       .nav-item{flex:1;text-align:center;padding:10px;font-size:14px}
@@ -300,6 +305,25 @@
     const toTitle = (s)=> s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
     const today = new Date();
     const currentMonthLabel = new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(today);
+
+    // ===== Enhanced Alert Functions =====
+    function showAlert(message, type = 'info', duration = 5000) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type}`;
+      alertDiv.innerHTML = message;
+      alertDiv.style.position = 'fixed';
+      alertDiv.style.top = '20px';
+      alertDiv.style.right = '20px';
+      alertDiv.style.zIndex = '1000';
+      alertDiv.style.maxWidth = '400px';
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        if (alertDiv.parentNode) {
+          alertDiv.parentNode.removeChild(alertDiv);
+        }
+      }, duration);
+    }
 
     // ===== Server API helpers =====
     async function serverLogin(username,password){
@@ -577,7 +601,7 @@
       btn.disabled=false; btn.textContent='Test ATS (REST)';
     }
 
-    // ===== Bullhorn: Back Office / Timesheets tests & summary =====
+    // ===== Enhanced Bullhorn: Back Office / Timesheets tests & summary =====
     async function testBBOConnection(){
       if(!currentUser){ alert('Please sign in first.'); return; }
       const status = document.getElementById('connectionBBOStatus');
@@ -590,7 +614,9 @@
         if(data.success){
           status.innerHTML = `
             <div style="color:green;padding:10px;background:#f0f9ff;border-radius:4px;">
-              <strong>✓ Back Office Connected</strong>
+              <strong>✓ Back Office Connected</strong><br>
+              Endpoint: ${data.endpoint || 'Connected'}<br>
+              Method: ${data.http_method || 'GET'} (${data.status || 'OK'})
             </div>`;
         }else{
           status.innerHTML = `
@@ -643,33 +669,82 @@
       const btn = document.getElementById('getBBOSummaryBtn');
       btn.disabled=true; btn.textContent='Loading...';
       const prior = summary.innerHTML;
+      
       try{
         const res = await fetch('/api/bbo-summary',{method:'GET',credentials:'same-origin'});
         const data = await res.json();
+        
         if(data.success){
           const s = data.summary || {};
           const card = `
             <div style="padding:15px;background:#eefaf3;border-radius:4px;margin-top:10px;">
               <h5 style="margin-bottom:10px;color:var(--indigo);">Back Office (Timesheets)</h5>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
-                <div><div style="font-size:24px;font-weight:600;color:var(--success);">${(s.entries_current_month??0).toLocaleString()}</div>
-                    <div style="color:#666;font-size:14px;">Time Entries (Current Month)</div></div>
-                <div><div style="font-size:24px;font-weight:600;color:var(--success);">${(s.total_hours_current_month??0).toLocaleString()}</div>
-                    <div style="color:#666;font-size:14px;">Total Hours (Current Month)</div></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;">
+                <div><div style="font-size:24px;font-weight:600;color:var(--success);">${(s.entries??0).toLocaleString()}</div>
+                    <div style="color:#666;font-size:14px;">Time Entries</div></div>
+                <div><div style="font-size:24px;font-weight:600;color:var(--success);">${(s.hours??0).toLocaleString()}</div>
+                    <div style="color:#666;font-size:14px;">Total Hours</div></div>
+                <div><div style="font-size:24px;font-weight:600;color:var(--success);">${fmtMoney(s.gp_amount??s.gp_est??0)}</div>
+                    <div style="color:#666;font-size:14px;">Estimated GP</div></div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:#666;">
+                Source: ${s.source || 'API'} | Window: ${s.window?.start} to ${s.window?.end}
               </div>
             </div>`;
-          // append if ATS card exists
+          // Append if ATS card exists, otherwise replace
           summary.innerHTML = prior.includes('ATS Data') ? (prior + card) : card;
         }else{
-          summary.innerHTML = `<div style="color:crimson;padding:10px;background:#fff5f5;border-radius:4px;"><strong>BBO Error:</strong> ${data.error||'Failed to get summary'}</div>`;
+          // Enhanced error handling with user-friendly messages
+          let errorMessage = data.error || 'Failed to get summary';
+          let alertClass = 'alert-error';
+          let retryButton = '';
+          
+          if(data.error_type === 'service_unavailable'){
+            errorMessage = `
+              <strong>Service Temporarily Unavailable</strong><br>
+              The Back Office service is currently down for maintenance or experiencing high load. 
+              This is typically temporary and should resolve within a few minutes.
+            `;
+            alertClass = 'alert-warning';
+            retryButton = '<button class="btn btn-primary" onclick="getBBOSummary()" style="margin-top:10px;">Retry</button>';
+            showAlert('Back Office service is temporarily unavailable. Please try again in a few minutes.', 'warning');
+          } else if(data.error_type === 'endpoint_not_found'){
+            errorMessage = `
+              <strong>Configuration Issue</strong><br>
+              The Back Office timesheets endpoint could not be found. 
+              Please verify your tenant configuration with your Bullhorn administrator.
+            `;
+          } else if(data.error_type === 'authentication_failed'){
+            errorMessage = `
+              <strong>Authentication Failed</strong><br>
+              Unable to authenticate with Back Office. 
+              Please verify your API credentials are correct.
+            `;
+          }
+          
+          const errorCard = `
+            <div class="alert ${alertClass}" style="margin-top:10px;">
+              ${errorMessage}
+              ${retryButton}
+            </div>`;
+          
+          // Append error if ATS card exists, otherwise replace
+          summary.innerHTML = prior.includes('ATS Data') ? (prior + errorCard) : errorCard;
         }
       }catch(err){
-        summary.innerHTML = `<div style="color:crimson;padding:10px;background:#fff5f5;border-radius:4px;"><strong>BBO Error:</strong> ${err.message}</div>`;
+        const errorCard = `
+          <div class="alert alert-error" style="margin-top:10px;">
+            <strong>Network Error:</strong> ${err.message}
+            <button class="btn btn-primary" onclick="getBBOSummary()" style="margin-top:10px;">Retry</button>
+          </div>`;
+        summary.innerHTML = prior.includes('ATS Data') ? (prior + errorCard) : errorCard;
+        showAlert('Network error connecting to Back Office. Please check your connection.', 'error');
       }
+      
       btn.disabled=false; btn.textContent='Get BBO Summary';
     }
 
-    // ===== Sync Data (ATS + BBO) =====
+    // ===== Enhanced Sync Data (ATS + BBO) =====
     async function syncBullhornData(){
       if(!currentUser){ alert('Please sign in first.'); return; }
       const startDate = document.getElementById('syncStartDate').value;
@@ -697,28 +772,51 @@
         const data = await res.json();
 
         if(data.success){
-          status.innerHTML = `
+          let statusHtml = `
             <div style="color:green;padding:15px;background:#f0f9ff;border-radius:4px;">
               <strong>✓ Sync Completed</strong><br>
               Processed: ${data.processed} rows<br>
               Total fetched: ${data.total_fetched}
             </div>`;
+          
+          // Show warnings if any
+          if(data.warnings && data.warnings.length > 0){
+            const warningsList = data.warnings.map(w => `<li>${w}</li>`).join('');
+            statusHtml += `
+              <div class="alert alert-warning" style="margin-top:10px;">
+                <strong>Sync Warnings:</strong>
+                <ul style="margin:5px 0 0 20px;">${warningsList}</ul>
+              </div>`;
+            
+            // Show toast notification for warnings
+            showAlert('Sync completed with warnings. Some data sources may be temporarily unavailable.', 'warning');
+          } else {
+            showAlert('Data sync completed successfully!', 'success');
+          }
+          
+          status.innerHTML = statusHtml;
+          
           await refreshFromServer();
           if(document.getElementById('currentPage').classList.contains('active')) updateCurrentMonth();
+          
           // Refresh summaries
-          getATSSummary();
-          getBBOSummary();
+          setTimeout(() => {
+            getATSSummary();
+            getBBOSummary();
+          }, 1000);
         }else{
           status.innerHTML = `
             <div style="color:crimson;padding:15px;background:#fff5f5;border-radius:4px;">
               <strong>✗ Sync Failed</strong><br>${data.error||'Unknown error'}
             </div>`;
+          showAlert('Data sync failed. Please try again.', 'error');
         }
       }catch(error){
         status.innerHTML = `
           <div style="color:crimson;padding:15px;background:#fff5f5;border-radius:4px;">
             <strong>✗ Sync Error</strong><br>${error.message}
           </div>`;
+        showAlert('Network error during sync. Please check your connection.', 'error');
       }
       btn.disabled=false; btn.textContent='Sync Data';
     }
@@ -789,6 +887,7 @@
           if(!res.ok || data.success===false){ status.textContent=`Upload failed: ${data.error||res.statusText}`; status.style.color='crimson'; return; }
           status.textContent=`Uploaded OK. Processed rows: ${data.processed||0}`; status.style.color='green';
           await refreshFromServer(); setActivePage('current');
+          showAlert(`File uploaded successfully. Processed ${data.processed||0} records.`, 'success');
         }catch(err){ status.textContent=`Upload error: ${String(err)}`; status.style.color='crimson'; }
       });
 
@@ -829,6 +928,7 @@
         document.getElementById('newEmployeeJobFunction').value='recruiter';
         await fetchEmployees();
         alert(`Employee "${name}" added successfully with ${role} access level`);
+        showAlert(`Employee "${name}" added successfully!`, 'success');
       }catch(err){ alert(`Error adding employee: ${String(err)}`); }
     }
   </script>

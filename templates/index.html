@@ -149,7 +149,7 @@
               <thead>
                 <tr>
                   <th>Employee</th>
-                  <th>Month</th>
+                  <th>Month/Year</th>
                   <th>Contract Revenue</th>
                   <th>DirectHire Revenue</th>
                   <th>ParaHire Revenue</th>
@@ -507,52 +507,34 @@
         <td>${totalCommission.toFixed(2)}</td><td></td><td></td>`;
       tbody.appendChild(totalRow);
     }
-    function updateYTD() {
+
+    // === REPLACED: YTD summary now comes from backend ===
+    async function updateYTD() {
+      const year = new Date().getFullYear();
+      const res = await fetch(`/api/summary/ytd?year=${year}`, { credentials:'same-origin' });
+      const data = await res.json();
       const tbody = document.getElementById('ytdTable');
       tbody.innerHTML = '';
-      defaultYTD.forEach((item) => {
+
+      if (!data.success) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color:crimson;">Unable to load YTD</td></tr>`;
+        return;
+      }
+
+      data.rows.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${item.employee}</td>
-          <td>${item.month}</td>
-          <td>${item.contractRevenue}</td>
-          <td>${item.directHire}</td>
-          <td>${item.paraHire}</td>
-          <td>${item.gp}</td>
-          <td>${item.commission}</td>`;
+          <td>${year}</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>${fmtMoney(item.gp)}</td>
+          <td>${fmtMoney(item.commission)}</td>`;
         tbody.appendChild(tr);
       });
     }
-    function updateSummary() {
-      const monthVal = document.getElementById('monthSelector').value;
-      const employeeVal = document.getElementById('employeeSelector').value;
-      const [y, m] = monthVal.split('-').map(Number);
-      const filtered = placementsData.filter((p) => {
-        const d = new Date(p.date);
-        const matchesMonth = d.getFullYear() === y && d.getMonth() + 1 === m;
-        const matchesEmp = employeeVal === 'all' || p.employee === employeeVal;
-        return matchesMonth && matchesEmp;
-      });
-      const totals = filtered.reduce((acc, r) => {
-        acc.hours += Number(r.hours) || 0;
-        acc.revenue += Number(r.revenue) || 0;
-        acc.gp += Number(r.gp) || 0;
-        acc.commission += Number(r.commission) || 0;
-        return acc;
-      }, { hours: 0, revenue: 0, gp: 0, commission: 0 });
-      const html = `
-        <div class="card" style="padding: 16px;">
-          <h3 style="margin-bottom: 10px;">Summary for <span class="kbd">${new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(new Date(y, m-1, 1))}</span> — <span class="kbd">${employeeVal === 'all' ? 'All Employees' : employeeVal}</span></h3>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-            <div><div class="role-desc">Total Hours</div><div style="font-size:22px;">${totals.hours.toLocaleString()}</div></div>
-            <div><div class="role-desc">Revenue</div><div style="font-size:22px;">${fmtMoney(totals.revenue)}</div></div>
-            <div><div class="role-desc">Gross Profit</div><div style="font-size:22px;">${fmtMoney(totals.gp)}</div></div>
-            <div><div class="role-desc">Commission</div><div style="font-size:22px;">${fmtMoney(totals.commission)}</div></div>
-          </div>
-          <p style="margin-top:12px;color:#6c757d;">${filtered.length} placement${filtered.length===1?'':'s'} matched.</p>
-        </div>`;
-      document.getElementById('summaryContent').innerHTML = html;
-    }
+
     function updatePlacements(list = placementsData) {
       const tbody = document.getElementById('placementsTable');
       tbody.innerHTML = '';
@@ -603,8 +585,6 @@
     }
 
     // ===== Bullhorn API Functions =====
-    
-    // Test Bullhorn API connection
     async function testBullhornConnection() {
       if (!currentUser) { 
         alert('Please sign in first.'); 
@@ -651,7 +631,6 @@
       btn.textContent = 'Test Connection';
     }
 
-    // Get Bullhorn data summary
     async function getBullhornSummary() {
       if (!currentUser) { 
         alert('Please sign in first.'); 
@@ -713,7 +692,6 @@
       btn.textContent = 'Get Data Summary';
     }
 
-    // Sync data from Bullhorn
     async function syncBullhornData() {
       if (!currentUser) { 
         alert('Please sign in first.'); 
@@ -921,6 +899,46 @@
         alert(`Error adding employee: ${String(err)}`);
       }
     }
+
+    // === REPLACED: Monthly summary now comes from backend ===
+    async function updateSummary() {
+      const monthVal = document.getElementById('monthSelector').value; // "YYYY-MM"
+      const employeeVal = document.getElementById('employeeSelector').value; // name or "all"
+      const [y, m] = monthVal.split('-').map(Number);
+
+      let employeeId = '';
+      if (employeeVal !== 'all') {
+        const found = employeeList.find(e => e.name === employeeVal);
+        if (found) employeeId = found.id;
+      }
+
+      const qs = new URLSearchParams({ year: String(y), month: String(m) });
+      if (employeeId) qs.set('employee_id', String(employeeId));
+
+      const res = await fetch(`/api/summary/monthly?${qs.toString()}`, { credentials:'same-origin' });
+      const data = await res.json();
+
+      if (!data.success) { 
+        document.getElementById('summaryContent').innerHTML = `<p style="color:crimson;">Error loading summary</p>`;
+        return;
+      }
+
+      const totals = data.totals;
+      const html = `
+        <div class="card" style="padding: 16px;">
+          <h3 style="margin-bottom: 10px;">
+            Summary for <span class="kbd">${new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(new Date(y, m-1, 1))}</span> — 
+            <span class="kbd">${employeeVal === 'all' ? 'All Employees' : employeeVal}</span>
+          </h3>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div><div class="role-desc">Gross Profit</div><div style="font-size:22px;">${fmtMoney(totals.gp)}</div></div>
+            <div><div class="role-desc">Commission</div><div style="font-size:22px;">${fmtMoney(totals.commission)}</div></div>
+            <div><div class="role-desc">Hours</div><div style="font-size:22px;">${(totals.hours||0).toLocaleString()}</div></div>
+          </div>
+        </div>`;
+      document.getElementById('summaryContent').innerHTML = html;
+    }
   </script>
 </body>
 </html>
+

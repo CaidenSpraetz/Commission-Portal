@@ -2,28 +2,40 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 import os
 import hashlib
+import logging
+from datetime import datetime, timedelta
+
 import pandas as pd
+from flask import Flask, render_template, request, jsonify, session
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
-from datetime import datetime
-from sqlalchemy import text
 
-# Import Bullhorn API modules (ATS + Back Office helpers)
+# ================= Logging =================
+logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+log = logging.getLogger("commission_portal")
+
+# ================= Optional Bullhorn modules =================
 try:
+    # Expecting these from your bullhorn_api.py
     from bullhorn_api import (
+        get_bullhorn_commission_data,
         BullhornAPI,
-        get_bullhorn_commission_data,   # ATS (primarily Permanent)
-        get_bbo_commission_data,        # Back Office / Timesheets (Contract/Temp)
-        BackOfficeAPI
     )
-    API_AVAILABLE = True
-except ImportError:
-    API_AVAILABLE = False
-    print("Warning: bullhorn_api.py not available; API routes will be disabled")
+    # Optional: newer BBO client may be in your module; we will also provide a local fallback.
+    try:
+        from bullhorn_api import BBOClient as ExternalBBOClient  # optional
+    except Exception:
+        ExternalBBOClient = None
+    BULLHORN_AVAILABLE = True
+except Exception as e:
+    BULLHORN_AVAILABLE = False
+    log.warning("bullhorn_api.py not available; ATS sync routes limited (%s)", e)
+    ExternalBBOClient = None
 
+# ================= Flask / App paths =================
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'commission-portal-secret-key')
 
-# ================= Persisted SQLite on Azure Linux App Service =================
 DATA_DIR = os.environ.get('DATA_DIR', '/home/site/wwwroot')
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -31,10 +43,8 @@ DB_PATH = os.path.join(DATA_DIR, 'commission_portal.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_PATH}?check_same_thread=false"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Optional: cap upload size (50 MB)
+# Upload settings
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-
-# Optional: keep original uploaded files for audit/debug
 UPLOAD_DIR = os.path.join(DATA_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -42,6 +52,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 db = SQLAlchemy(app)
 
 class Employee(db.Model):
+    __tablename__ = "employee"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
@@ -52,9 +63,9 @@ class Employee(db.Model):
     status = db.Column(db.String(10), default='Active')
 
 class CommissionData(db.Model):
+    __tablename__ = "commission_data"
     id = db.Column(db.Integer, primary_key=True)
     employee_name = db.Column(db.String(100), nullable=False)
-    employee_id = db.Column(db.Integer, nullable=True)    # FK-like (not enforced) to Employee.id
     client = db.Column(db.String(200))
     status = db.Column(db.String(50))
     gp = db.Column(db.Float)
@@ -63,13 +74,85 @@ class CommissionData(db.Model):
     commission = db.Column(db.Float)
     month = db.Column(db.String(20))
     day = db.Column(db.Integer)
-    year = db.Column(db.Integer)                          # NEW
-    placement_id = db.Column(db.String(64))               # NEW (ATS/BBO placement identifier if available)
-    unique_key = db.Column(db.String(64), unique=True)    # NEW: upsert guard
 
-# ================= Password Security Helpers =================
+    # New columns used by sync & UI
+    year = db.Column(db.Integer, default=datetime.now().year)
+    placement_id = db.Column(db.String(50))        # ATS placement id when available
+    unique_key = db.Column(db.String(120), index=True, unique=True)  # de-dup key
+    employee_id = db.Column(db.Integer)            # FK to Employee.id (kept simple for SQLite)
+
+# ================== BBO (Back Office) Client – reads YOUR env var names ==================
+class BBOClient:
+    """
+    Uses your env var names:
+      - BBO_TIMESHEETS_BASE (preferred) or BBO_REST_DOMAIN -> e.g. https://api.bbo.bullhornstaffing.com
+      - BBO_API_KEY                                        -> your API key
+      - BBO_API_VERSION (optional)                         -> defaults to v1.0
+    """
+    def __init__(self):
+        base = os.environ.get("BBO_TIMESHEETS_BASE") or os.environ.get("BBO_REST_DOMAIN") or "https://api.bbo.bullhornstaffing.com"
+        self.base_url = base.rstrip("/:").strip()
+        self.version = (os.environ.get("BBO_API_VERSION") or "v1.0").strip().strip("/")
+        self.api_key = os.environ.get("BBO_API_KEY")
+        self.timeout = int(os.environ.get("BBO_TIMEOUT", "30"))
+
+        if not self.api_key:
+            raise ValueError("Missing Back Office (Timesheets) env vars: BBO_API_KEY")
+
+        import requests  # local import to avoid issues if requests missing
+        self._requests = requests
+        self._session = requests.Session()
+
+    def _url(self, path: str) -> str:
+        return f"{self.base_url}/{self.version}{path}"
+
+    def _headers(self) -> dict:
+        return {"x-api-key": self.api_key, "Accept": "application/json"}
+
+    def ping(self) -> bool:
+        # Some tenants expose /Ping; if not, fall back to /Health
+        for endpoint in ("/Ping", "/Health", "/health"):
+            url = self._url(endpoint)
+            try:
+                r = self._session.get(url, headers=self._headers(), timeout=self.timeout)
+                if r.status_code == 200:
+                    return True
+            except Exception as e:
+                last_err = f"{endpoint} -> {e}"
+                continue
+        raise RuntimeError("BBO ping failed; endpoints /Ping & /Health not available")
+
+    def get_time_entries(self, start_date: datetime, end_date: datetime):
+        # Try a few parameter variants (tenants differ)
+        params_variants = [
+            {"from": start_date.strftime("%Y-%m-%d"), "to": end_date.strftime("%Y-%m-%d")},
+            {"startDate": start_date.strftime("%Y-%m-%d"), "endDate": end_date.strftime("%Y-%m-%d")},
+            {"start": start_date.strftime("%Y-%m-%d"), "end": end_date.strftime("%Y-%m-%d")},
+        ]
+        last_err = None
+        for params in params_variants:
+            url = self._url("/Timesheets/Entries")
+            try:
+                r = self._session.get(url, headers=self._headers(), params=params, timeout=self.timeout)
+                if r.status_code == 200:
+                    data = r.json()
+                    if isinstance(data, dict) and "data" in data:
+                        return data["data"]
+                    if isinstance(data, list):
+                        return data
+                    return []
+                else:
+                    last_err = f"GET {url} failed: {r.status_code} {r.text[:200]}"
+            except Exception as e:
+                last_err = str(e)
+        raise RuntimeError(last_err or "Unknown error calling BBO Timesheets/Entries")
+
+# If your bullhorn_api.py already defines BBOClient, use it; else fallback to our local class
+if ExternalBBOClient:
+    BBOClient = ExternalBBOClient  # type: ignore
+
+# ================= Password Security =================
 def hash_password(password):
-    """Hash password - try werkzeug pbkdf2; fallback to SHA256"""
     try:
         from werkzeug.security import generate_password_hash
         return generate_password_hash(password, method='pbkdf2:sha256')
@@ -77,7 +160,6 @@ def hash_password(password):
         return hashlib.sha256(password.encode()).hexdigest()
 
 def verify_password(password, hash_value):
-    """Verify password against hash - try werkzeug; fallback to SHA256 compare"""
     try:
         from werkzeug.security import check_password_hash
         if check_password_hash(hash_value, password):
@@ -86,9 +168,8 @@ def verify_password(password, hash_value):
         pass
     return hashlib.sha256(password.encode()).hexdigest() == hash_value
 
-# ================= Generic Utilities =================
+# ================= Helpers =================
 def _first_match(row_map, candidates):
-    """Return first non-empty value by scanning row_map (lowercased headers -> values)."""
     for key in candidates:
         if key in row_map:
             val = row_map.get(key, "")
@@ -97,10 +178,9 @@ def _first_match(row_map, candidates):
     return None
 
 def _parse_date(value):
-    """Parse many date shapes (strings, pandas timestamps, Excel serials)."""
     if value is None or (isinstance(value, str) and not value.strip()):
         return None
-    if isinstance(value, (pd.Timestamp,)):
+    if isinstance(value, (pd.Timestamp, )):
         return value.to_pydatetime()
     if isinstance(value, (int, float)) and 20000 < float(value) < 60000:
         base = pd.Timestamp('1899-12-30')
@@ -119,11 +199,6 @@ def _parse_date(value):
     return None
 
 def _infer_commission_rate(status, gp, provided_rate):
-    """
-    Returns (rate_str, rate_float). Priority:
-    1) provided_rate in file (like '9.75%')
-    2) status-based: if contains 'enterprise' -> 9.75%, else 10.00%
-    """
     if provided_rate:
         s = str(provided_rate).strip()
         try:
@@ -142,41 +217,54 @@ def _infer_commission_rate(status, gp, provided_rate):
         return "9.75%", 0.0975
     return "10.00%", 0.10
 
-def _unique_key_for(record: dict) -> str:
-    """
-    Create a stable unique key per logical row to support upserts.
-    Includes placement_id when present; otherwise hash core identifiers.
-    """
-    prefix = "perm" if str(record.get('status', '')).lower().startswith('permanent') else \
-             "bbo" if 'contract' in str(record.get('status', '')).lower() else "file"
-    base_str = "|".join([
-        str(record.get('placement_id') or '').strip(),
-        str(record.get('employee_name') or '').strip(),
-        str(record.get('client') or '').strip(),
-        str(record.get('status') or '').strip(),
-        str(record.get('month') or '').strip(),
-        str(record.get('year') or '').strip()
-    ])
-    digest = hashlib.sha256(base_str.encode()).hexdigest()[:24]
-    return f"{prefix}:{digest}"
+def _month_num(name: str) -> int:
+    try:
+        dt = datetime.strptime(name, "%B")
+        return dt.month
+    except Exception:
+        return datetime.now().month
 
-def match_employee_name_to_record(name: str):
-    """Find Employee row by display name (case-insensitive)."""
-    if not name:
-        return None
-    return Employee.query.filter(Employee.name.ilike(name)).first()
+def _safe_add_column(table: str, column: str, ddl_type: str):
+    """Add column to SQLite table if missing."""
+    try:
+        res = db.session.execute(db.text(f"PRAGMA table_info({table});")).fetchall()
+        cols = [r[1] for r in res]  # name is second column
+        if column not in cols:
+            db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type};"))
+            db.session.commit()
+            log.info("SQLite: added missing column %s.%s", table, column)
+    except Exception as e:
+        db.session.rollback()
+        log.warning("SQLite column check/add failed for %s.%s: %s", table, column, e)
+
+def _employee_id_by_name(name: str):
+    emp = Employee.query.filter_by(name=name).first()
+    return emp.id if emp else None
+
+def _dedupe_key(rec: dict) -> str:
+    # Prefer placement_id if present
+    pid = rec.get("placement_id")
+    if pid:
+        prefix = "perm" if rec.get("status","").lower().startswith("perm") else "contract"
+        return f"{prefix}:{pid}"
+    # Else, make a stable key by fields
+    year = rec.get("year") or datetime.now().year
+    month = rec.get("month") or "Unknown"
+    day = rec.get("day") or 1
+    emp = rec.get("employee_name") or ""
+    client = rec.get("client") or ""
+    status = rec.get("status") or ""
+    gp = rec.get("gp") or 0.0
+    return f"{year}|{month}|{day}|{emp}|{client}|{status}|{gp:.2f}"
 
 # ================= Routes =================
 @app.route('/')
 def index():
-    # Ensure we serve the template named 'index.html' from /templates
     return render_template('index.html')
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'error': 'No data provided'})
+    data = request.get_json() or {}
     username = data.get('username')
     password = data.get('password')
     if not username or not password:
@@ -218,19 +306,17 @@ def add_employee():
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'error': 'No data provided'})
+    data = request.get_json() or {}
     required = ['name', 'email', 'username', 'password', 'role', 'job_function']
     for f in required:
         if not data.get(f):
             return jsonify({'success': False, 'error': f'{f} is required'})
     if Employee.query.filter_by(username=data['username']).first():
         return jsonify({'success': False, 'error': 'Username already exists'})
-    password_hash = hash_password(data['password'])
     employee = Employee(
         name=data['name'], email=data['email'], username=data['username'],
-        password_hash=password_hash, role=data['role'], job_function=data['job_function']
+        password_hash=hash_password(data['password']),
+        role=data['role'], job_function=data['job_function']
     )
     try:
         db.session.add(employee)
@@ -267,7 +353,6 @@ def get_commission_data():
     return jsonify([{
         'id': cd.id,
         'employee': cd.employee_name,
-        'employee_id': cd.employee_id,
         'client': cd.client,
         'status': cd.status,
         'gp': cd.gp,
@@ -278,7 +363,8 @@ def get_commission_data():
         'day': cd.day,
         'year': cd.year,
         'placement_id': cd.placement_id,
-        'unique_key': cd.unique_key
+        'unique_key': cd.unique_key,
+        'employee_id': cd.employee_id
     } for cd in commission_data])
 
 @app.route('/api/upload', methods=['POST'])
@@ -297,9 +383,12 @@ def upload_file():
         saved_path = os.path.join(UPLOAD_DIR, filename)
         file.stream.seek(0)
         file.save(saved_path)
+
         if filename.endswith('.csv'):
             df = pd.read_csv(saved_path)
-        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+        elif filename.endswith('.xlsx'):
+            df = pd.read_excel(saved_path, engine='openpyxl')
+        elif filename.endswith('.xls'):
             df = pd.read_excel(saved_path, engine='openpyxl')
         else:
             return jsonify({'success': False, 'error': 'Unsupported file format'})
@@ -329,9 +418,13 @@ def upload_file():
             date_val = _first_match(row_map, DATE_COLS)
             dt = _parse_date(date_val)
             if dt is None:
-                month_name, day_num, year_val = 'Current', 1, datetime.now().year
+                month_name = 'Current'
+                day_num = 1
+                year_num = datetime.now().year
             else:
-                month_name, day_num, year_val = dt.strftime('%B'), int(dt.day), dt.year
+                month_name = dt.strftime('%B')
+                day_num = int(dt.day)
+                year_num = dt.year
 
             gp = pd.to_numeric(gp_val, errors='coerce') if gp_val is not None else None
             if client and employee_name and gp is not None and not pd.isna(gp):
@@ -339,57 +432,39 @@ def upload_file():
                 if hours is None or pd.isna(hours) or float(hours) <= 0:
                     hours = 40.0
                 hourly_gp = float(gp) / float(hours)
+
                 rate_str, rate_float = _infer_commission_rate(status_val, gp, provided_rate)
                 commission_amt = round(float(gp) * rate_float, 2)
 
-                record = {
-                    'employee_name': str(employee_name),
-                    'client': str(client),
-                    'status': str(status_val) if status_val else 'New',
-                    'gp': float(gp),
-                    'hourly_gp': round(hourly_gp, 2),
-                    'commission_rate': rate_str,
-                    'commission': commission_amt,
-                    'month': month_name,
-                    'day': day_num,
-                    'year': year_val,
-                    'placement_id': None
-                }
-                ukey = _unique_key_for(record)
-                emp_row = match_employee_name_to_record(record['employee_name'])
-                emp_id = emp_row.id if emp_row else None
+                rec = CommissionData(
+                    employee_name=str(employee_name),
+                    client=str(client),
+                    status=str(status_val) if status_val else 'New',
+                    gp=float(gp),
+                    hourly_gp=round(hourly_gp, 2),
+                    commission_rate=rate_str,
+                    commission=commission_amt,
+                    month=month_name,
+                    day=day_num,
+                    year=year_num,
+                )
+                # de-dupe key (file uploads usually don't have placement_id)
+                rec.unique_key = _dedupe_key({
+                    "employee_name": rec.employee_name,
+                    "client": rec.client,
+                    "status": rec.status,
+                    "gp": rec.gp,
+                    "month": rec.month,
+                    "day": rec.day,
+                    "year": rec.year,
+                    "placement_id": None
+                })
+                rec.employee_id = _employee_id_by_name(rec.employee_name)
 
-                existing = CommissionData.query.filter_by(unique_key=ukey).first()
-                if existing:
-                    existing.employee_name = record['employee_name']
-                    existing.employee_id = emp_id
-                    existing.client = record['client']
-                    existing.status = record['status']
-                    existing.gp = record['gp']
-                    existing.hourly_gp = record['hourly_gp']
-                    existing.commission_rate = record['commission_rate']
-                    existing.commission = record['commission']
-                    existing.month = record['month']
-                    existing.day = record['day']
-                    existing.year = record['year']
-                    existing.placement_id = record['placement_id']
-                else:
-                    db.session.add(CommissionData(
-                        employee_name=record['employee_name'],
-                        employee_id=emp_id,
-                        client=record['client'],
-                        status=record['status'],
-                        gp=record['gp'],
-                        hourly_gp=record['hourly_gp'],
-                        commission_rate=record['commission_rate'],
-                        commission=record['commission'],
-                        month=record['month'],
-                        day=record['day'],
-                        year=record['year'],
-                        placement_id=record['placement_id'],
-                        unique_key=ukey
-                    ))
-                processed_count += 1
+                exists = CommissionData.query.filter_by(unique_key=rec.unique_key).first()
+                if not exists:
+                    db.session.add(rec)
+                    processed_count += 1
 
         db.session.commit()
         return jsonify({'success': True, 'processed': processed_count})
@@ -398,18 +473,87 @@ def upload_file():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Processing error: {str(e)}'})
 
-# ================= Bullhorn API Routes =================
+# ================= Bullhorn ATS & Back Office routes =================
 
-@app.route('/api/sync-bullhorn', methods=['POST'])
-def sync_bullhorn_data():
-    """Sync commission data from ATS (Permanent) and Back Office Timesheets (Contract/Temp)."""
-    if not API_AVAILABLE:
-        return jsonify({'success': False, 'error': 'API modules not available'})
+@app.route('/api/test-bullhorn', methods=['GET'])
+def test_bullhorn_connection():
+    if not BULLHORN_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
+    try:
+        api = BullhornAPI()
+        success = api.authenticate()
+        if success:
+            return jsonify({'success': True, 'message': 'Successfully connected to Bullhorn API', 'rest_url': api.rest_url})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to authenticate with Bullhorn API'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Connection test failed: {str(e)}'})
 
+@app.route('/api/test-bbo', methods=['GET'])
+def test_bbo_connection():
+    """Ping Back Office with API key using your env vars."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session.get('role') not in ['admin', 'manager']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    try:
+        client = BBOClient()
+        ok = client.ping()
+        if ok:
+            return jsonify({'success': True, 'message': 'BBO Ping OK'})
+        return jsonify({'success': False, 'error': 'BBO ping failed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'BBO test failed: {e}'})
+
+@app.route('/api/bbo-summary', methods=['GET'])
+def bbo_summary():
+    """Quick summary of time entries from BBO for the recent lookback window."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session.get('role') not in ['admin', 'manager']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
+    try:
+        lookback_days = int(request.args.get("days", "30"))
+        end_date = datetime.utcnow().date()
+        start_date = end_date - timedelta(days=lookback_days)
+        client = BBOClient()
+        entries = client.get_time_entries(datetime(start_date.year, start_date.month, start_date.day),
+                                          datetime(end_date.year, end_date.month, end_date.day))
+        total = len(entries)
+        total_hours = 0.0
+        total_bill = 0.0
+        total_pay = 0.0
+        for e in entries:
+            total_hours += float(e.get("hours", 0) or 0)
+            total_bill += float(e.get("billAmount", 0) or 0)
+            total_pay += float(e.get("payAmount", 0) or 0)
+        return jsonify({
+            "success": True,
+            "summary": {
+                "entries": total,
+                "hours": round(total_hours, 2),
+                "bill_amount": round(total_bill, 2),
+                "pay_amount": round(total_pay, 2),
+                "gp_est": round(total_bill - total_pay, 2),
+                "window": {"start": str(start_date), "end": str(end_date)}
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'BBO summary failed: {e}'})
+
+@app.route('/api/sync-bullhorn', methods=['POST'])
+def sync_bullhorn_data():
+    """Sync commission data from ATS (perms) and Back Office (contract/temps)."""
+    if not BULLHORN_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session.get('role') not in ['admin', 'manager']:
+        return jsonify({'error': 'Insufficient permissions'}), 403
     try:
         data = request.get_json() or {}
         start_date_str = data.get('start_date')
@@ -424,128 +568,74 @@ def sync_bullhorn_data():
         else:
             start_date = datetime(datetime.now().year, 1, 1)
 
-        total_fetched = 0
-        processed_count = 0
+        # Fetch combined data via helper in bullhorn_api.py (should call ATS + BBO)
+        all_records = get_bullhorn_commission_data(
+            include_contract_time=include_contract_time,
+            include_permanent=include_permanent,
+            start_date=start_date
+        )
+        if not all_records:
+            return jsonify({'success': False, 'error': 'No data retrieved from APIs'})
 
-        # ---- Back Office / Timesheets (Contract/Temp) ----
-        if include_contract_time:
-            try:
-                bbo_rows = get_bbo_commission_data(start_date, datetime.now())
-            except Exception as e:
-                bbo_rows = []
-                print(f"BBO fetch error: {e}")
-            total_fetched += len(bbo_rows)
+        processed = 0
+        for rec in all_records:
+            # normalize and map
+            employee_name = rec.get('employee_name') or rec.get('employee') or ""
+            client = rec.get('client') or ""
+            status = rec.get('status') or "New"
+            gp = float(rec.get('gp') or 0.0)
+            hourly_gp = float(rec.get('hourly_gp') or 0.0)
+            commission_rate = rec.get('commission_rate') or "10.00%"
+            commission = float(rec.get('commission') or round(gp * 0.10, 2))
+            month = rec.get('month') or (start_date.strftime("%B"))
+            day = int(rec.get('day') or 1)
+            year = int(rec.get('year') or start_date.year)
+            placement_id = rec.get("placement_id")
 
-            for record in bbo_rows:
-                try:
-                    ukey = _unique_key_for(record)
-                    emp_row = match_employee_name_to_record(record.get('employee_name'))
-                    emp_id = emp_row.id if emp_row else None
-                    existing = CommissionData.query.filter_by(unique_key=ukey).first()
+            unique_key = _dedupe_key({
+                "employee_name": employee_name,
+                "client": client,
+                "status": status,
+                "gp": gp,
+                "month": month,
+                "day": day,
+                "year": year,
+                "placement_id": placement_id
+            })
 
-                    payload = dict(
-                        employee_name=record['employee_name'],
-                        employee_id=emp_id,
-                        client=record['client'],
-                        status=record['status'],
-                        gp=float(record['gp'] or 0),
-                        hourly_gp=float(record['hourly_gp'] or 0),
-                        commission_rate=record['commission_rate'],
-                        commission=float(record['commission'] or 0),
-                        month=record['month'],
-                        day=int(record['day'] or 1),
-                        year=int(record.get('year') or datetime.now().year),
-                        placement_id=record.get('placement_id'),
-                        unique_key=ukey
-                    )
-                    if existing:
-                        for k, v in payload.items():
-                            setattr(existing, k, v)
-                    else:
-                        db.session.add(CommissionData(**payload))
-                    processed_count += 1
-                except Exception as e:
-                    print(f"BBO upsert error: {e}")
+            # de-dup
+            if CommissionData.query.filter_by(unique_key=unique_key).first():
+                continue
 
-        # ---- ATS (Permanent placements) ----
-        if include_permanent:
-            try:
-                ats_rows = get_bullhorn_commission_data(
-                    include_contract_time=False,   # we use BBO for contract time
-                    include_permanent=True,
-                    start_date=start_date
-                )
-            except Exception as e:
-                ats_rows = []
-                print(f"ATS fetch error: {e}")
-            total_fetched += len(ats_rows)
-
-            for record in ats_rows:
-                try:
-                    ukey = _unique_key_for(record)
-                    emp_row = match_employee_name_to_record(record.get('employee_name'))
-                    emp_id = emp_row.id if emp_row else None
-                    existing = CommissionData.query.filter_by(unique_key=ukey).first()
-
-                    payload = dict(
-                        employee_name=record['employee_name'],
-                        employee_id=emp_id,
-                        client=record['client'],
-                        status=record['status'],
-                        gp=float(record['gp'] or 0),
-                        hourly_gp=float(record['hourly_gp'] or 0),
-                        commission_rate=record['commission_rate'],
-                        commission=float(record['commission'] or 0),
-                        month=record['month'],
-                        day=int(record['day'] or 1),
-                        year=int(record.get('year') or datetime.now().year),
-                        placement_id=record.get('placement_id'),
-                        unique_key=ukey
-                    )
-                    if existing:
-                        for k, v in payload.items():
-                            setattr(existing, k, v)
-                    else:
-                        db.session.add(CommissionData(**payload))
-                    processed_count += 1
-                except Exception as e:
-                    print(f"ATS upsert error: {e}")
+            row = CommissionData(
+                employee_name=employee_name,
+                client=client,
+                status=status,
+                gp=gp,
+                hourly_gp=round(hourly_gp, 2),
+                commission_rate=commission_rate,
+                commission=round(commission, 2),
+                month=month,
+                day=day,
+                year=year,
+                placement_id=str(placement_id) if placement_id else None,
+                unique_key=unique_key,
+                employee_id=_employee_id_by_name(employee_name)
+            )
+            db.session.add(row)
+            processed += 1
 
         db.session.commit()
-        return jsonify({
-            'success': True,
-            'processed': processed_count,
-            'total_fetched': total_fetched
-        })
+        return jsonify({'success': True, 'processed': processed, 'total_fetched': len(all_records)})
 
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Sync error: {str(e)}'})
 
-@app.route('/api/test-bullhorn', methods=['GET'])
-def test_bullhorn_connection():
-    """Test ATS REST connection."""
-    if not API_AVAILABLE:
-        return jsonify({'success': False, 'error': 'API modules not available'})
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    if session.get('role') not in ['admin', 'manager']:
-        return jsonify({'error': 'Insufficient permissions'}), 403
-    try:
-        api = BullhornAPI()
-        success = api.authenticate()
-        if success:
-            return jsonify({'success': True, 'message': 'ATS connected', 'rest_url': api.rest_url})
-        else:
-            return jsonify({'success': False, 'error': 'Failed to authenticate with ATS REST'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Connection test failed: {str(e)}'})
-
 @app.route('/api/bullhorn-summary', methods=['GET'])
 def get_bullhorn_summary():
-    """ATS summary (kept similar to prior)."""
-    if not API_AVAILABLE:
-        return jsonify({'success': False, 'error': 'API modules not available'})
+    if not BULLHORN_AVAILABLE:
+        return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
@@ -554,102 +644,35 @@ def get_bullhorn_summary():
         api = BullhornAPI()
         if not api.authenticate():
             return jsonify({'success': False, 'error': 'Authentication failed'})
+
         now = datetime.now()
         start_of_year = int(datetime(now.year, 1, 1).timestamp() * 1000)
+
         perm_fields = ["id"]
         perm_where = f"employmentType='Permanent' AND dateBegin>={start_of_year}"
         _, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
 
-        # approximate time records count from ATS as before (not authoritative)
-        contract_time_fields = ["id"]
-        start_month_ms = int(datetime(now.year, now.month, 1).timestamp() * 1000)
-        end_month_ms = int(datetime(now.year + (1 if now.month == 12 else 0),
-                                    1 if now.month == 12 else now.month + 1, 1).timestamp() * 1000)
-        time_where = f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}"
-        _, all_time_total = api.fetch_entity("PlacementTimeUnit", contract_time_fields, time_where, 1)
-        estimated_contract_time_total = int(all_time_total * 0.7) if all_time_total else 0
-
-        return jsonify({'success': True, 'summary': {
-            'permanent_placements_ytd': perm_total,
-            'contract_time_records_current_month': estimated_contract_time_total,
-            'last_sync': None
-        }})
+        # No ATS time entity for many tenants; we return 0 here and rely on BBO summary endpoint.
+        return jsonify({
+            'success': True,
+            'summary': {
+                'permanent_placements_ytd': perm_total,
+                'contract_time_records_current_month': None,
+                'last_sync': None
+            }
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': f'Summary error: {str(e)}'})
 
-# -------- Back Office (Timesheets) test & summary --------
-@app.route('/api/test-bbo', methods=['GET'])
-def test_bbo_connection():
-    if not API_AVAILABLE:
-        return jsonify({'success': False, 'error': 'API modules not available'})
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    if session.get('role') not in ['admin', 'manager']:
-        return jsonify({'error': 'Insufficient permissions'}), 403
-    try:
-        client = BackOfficeAPI()
-        return jsonify({'success': True}) if client.ping() else jsonify({'success': False, 'error': 'Ping failed'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'BBO test failed: {str(e)}'})
-
-@app.route('/api/bbo-summary', methods=['GET'])
-def bbo_summary():
-    if not API_AVAILABLE:
-        return jsonify({'success': False, 'error': 'API modules not available'})
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    if session.get('role') not in ['admin', 'manager']:
-        return jsonify({'error': 'Insufficient permissions'}), 403
-    try:
-        # For current month
-        now = datetime.now()
-        start_of_month = datetime(now.year, now.month, 1)
-        rows = get_bbo_commission_data(start_of_month, now)
-        entries = len(rows)
-        total_hours = 0.0
-        for r in rows:
-            # We didn't persist hours in CommissionData for BBO, but we can recompute here if needed.
-            # If you decide to store hours in CommissionData later, update this accordingly.
-            # For summary, treat GP/hourly_gp to derive hours if present:
-            gp = float(r.get('gp') or 0.0)
-            hourly_gp = float(r.get('hourly_gp') or 0.0)
-            if hourly_gp > 0:
-                total_hours += gp / hourly_gp
-        return jsonify({'success': True, 'summary': {
-            'entries_current_month': entries,
-            'total_hours_current_month': round(total_hours, 2)
-        }})
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'BBO summary failed: {str(e)}'})
-
-# ================= Init DB & schema guard =================
-def ensure_commission_columns():
-    """
-    Ensure new columns exist for older deployments (SQLite only).
-    """
-    try:
-        res = db.session.execute(text("PRAGMA table_info(commission_data)")).fetchall()
-        cols = {row[1] for row in res}
-        alter_cmds = []
-        if 'employee_id' not in cols:
-            alter_cmds.append("ALTER TABLE commission_data ADD COLUMN employee_id INTEGER")
-        if 'year' not in cols:
-            alter_cmds.append("ALTER TABLE commission_data ADD COLUMN year INTEGER")
-        if 'placement_id' not in cols:
-            alter_cmds.append("ALTER TABLE commission_data ADD COLUMN placement_id VARCHAR(64)")
-        if 'unique_key' not in cols:
-            alter_cmds.append("ALTER TABLE commission_data ADD COLUMN unique_key VARCHAR(64)")
-        for cmd in alter_cmds:
-            db.session.execute(text(cmd))
-        if alter_cmds:
-            db.session.commit()
-    except Exception as e:
-        print(f"Schema ensure error (safe to ignore on fresh DB): {e}")
-
+# ================= Init DB & seed sample =================
 def init_db():
     with app.app_context():
         db.create_all()
-        ensure_commission_columns()
+        # Self-heal columns if DB existed from older schema
+        _safe_add_column("commission_data", "year", "INTEGER")
+        _safe_add_column("commission_data", "placement_id", "VARCHAR(50)")
+        _safe_add_column("commission_data", "unique_key", "VARCHAR(120)")
+        _safe_add_column("commission_data", "employee_id", "INTEGER")
 
         if not Employee.query.filter_by(username='admin').first():
             users = [
@@ -666,24 +689,18 @@ def init_db():
                 db.session.add(user)
 
             samples = [
-                dict(employee_name='Pam Henard', client='Ajax Building Company', status='Contract (Temporary)',
-                     gp=336.96, hourly_gp=6.48, commission_rate='10.00%', commission=33.70, month='August', day=3, year=datetime.now().year, placement_id=None),
-                dict(employee_name='Pam Henard', client='Evolent', status='Contract (Temporary)',
-                     gp=117.84, hourly_gp=2.95, commission_rate='10.00%', commission=11.78, month='August', day=3, year=datetime.now().year, placement_id=None),
-                dict(employee_name='Sarah Johnson', client='TechCorp', status='Permanent',
-                     gp=450.00, hourly_gp=0.00, commission_rate='10.00%', commission=45.00, month='August', day=5, year=datetime.now().year, placement_id='P-12345'),
+                CommissionData(employee_name='Pam Henard', client='Ajax Building Company', status='Contract (Contract)', gp=336.96, hourly_gp=6.48, commission_rate='10.00%', commission=33.70, month='August', day=3, year=2025, unique_key='seed:1'),
+                CommissionData(employee_name='Pam Henard', client='Evolent', status='Contract (Temporary)', gp=117.84, hourly_gp=2.95, commission_rate='10.00%', commission=11.78, month='August', day=3, year=2025, unique_key='seed:2'),
+                CommissionData(employee_name='Sarah Johnson', client='TechCorp', status='Permanent', gp=450.00, hourly_gp=0.00, commission_rate='10.00%', commission=45.00, month='August', day=5, year=2025, unique_key='seed:3')
             ]
             for s in samples:
-                ukey = _unique_key_for(s)
-                db.session.add(CommissionData(
-                    employee_name=s['employee_name'], employee_id=match_employee_name_to_record(s['employee_name']).id if match_employee_name_to_record(s['employee_name']) else None,
-                    client=s['client'], status=s['status'], gp=s['gp'], hourly_gp=s['hourly_gp'],
-                    commission_rate=s['commission_rate'], commission=s['commission'],
-                    month=s['month'], day=s['day'], year=s['year'], placement_id=s['placement_id'], unique_key=ukey
-                ))
-            db.session.commit()
+                db.session.add(s)
 
-# Initialize database on startup
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
 init_db()
 
 if __name__ == '__main__':

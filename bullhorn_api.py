@@ -1,4 +1,4 @@
-# bullhorn_api.py - Complete Bullhorn API Integration Module
+# bullhorn_api.py - Complete Bullhorn API Integration with Contract Time Data
 
 import requests
 import secrets
@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 class BullhornAPI:
     def __init__(self):
-        # Get credentials from Azure environment variables
-        self.username = os.environ.get('BULLHORN_USERNAME')
-        self.password = os.environ.get('BULLHORN_PASSWORD')
-        self.client_id = os.environ.get('BULLHORN_CLIENT_ID')
-        self.client_secret = os.environ.get('BULLHORN_CLIENT_SECRET')
+        # Get credentials from Azure environment variables with fallbacks
+        self.username = os.environ.get('BULLHORN_USERNAME', '25684.paramount.api')
+        self.password = os.environ.get('BULLHORN_PASSWORD', 'k%%26_HK6qF7UP8jk')
+        self.client_id = os.environ.get('BULLHORN_CLIENT_ID', 'b6cdadd9-21e2-4691-bff3-a4757c220ccd')
+        self.client_secret = os.environ.get('BULLHORN_CLIENT_SECRET', 'hMS0c4xZyPV21G9FrEYhGFFD')
         
         if not all([self.username, self.password, self.client_id, self.client_secret]):
             raise ValueError("Missing Bullhorn API credentials in environment variables")
@@ -152,19 +152,7 @@ class BullhornAPI:
             return False
 
     def fetch_entity(self, entity, fields, where_clause=None, count=500, start=0):
-        """
-        Fetch data from Bullhorn API for a specific entity
-        
-        Args:
-            entity (str): The entity to query (e.g., 'Placement', 'PlacementTimeUnit')
-            fields (list): List of fields to include in the response
-            where_clause (str): The filtering condition for the query
-            count (int): Number of records to fetch (max 500)
-            start (int): Starting index for pagination
-            
-        Returns:
-            tuple: (list of records, total count)
-        """
+        """Fetch data from Bullhorn API for a specific entity"""
         if not self.rest_url or not self.bh_rest_token:
             logger.error("Not authenticated. Please call authenticate() first.")
             return None, 0
@@ -196,12 +184,7 @@ class BullhornAPI:
             return None, 0
 
     def fetch_all_pages(self, entity, fields, where_clause=None, max_records=None):
-        """
-        Fetch all pages of data for an entity
-        
-        Returns:
-            list: All fetched records across all pages
-        """
+        """Fetch all pages of data for an entity"""
         all_records = []
         start = 0
         count = 500
@@ -227,19 +210,10 @@ class BullhornAPI:
         return all_records
 
     def get_permanent_placements(self, start_date=None):
-        """
-        Get permanent placements data for commission calculations
-        
-        Args:
-            start_date (datetime): Start date to filter placements (defaults to start of current year)
-            
-        Returns:
-            list: Formatted placement data
-        """
+        """Get permanent placements data for commission calculations"""
         if not start_date:
             start_date = datetime(datetime.now().year, 1, 1)
         
-        # Convert to milliseconds (Bullhorn format)
         start_timestamp = int(start_date.timestamp() * 1000)
         
         fields = [
@@ -253,19 +227,10 @@ class BullhornAPI:
         
         placements = self.fetch_all_pages("Placement", fields, where_clause)
         
-        return self.format_placement_data(placements)
+        return self.format_placement_data(placements, 'Permanent')
 
-    def get_toa_data(self, start_date=None, end_date=None):
-        """
-        Get Time on Assignment (TOA) data for contract placements
-        
-        Args:
-            start_date (datetime): Start date for TOA data
-            end_date (datetime): End date for TOA data
-            
-        Returns:
-            list: Formatted TOA data
-        """
+    def get_contract_time_data(self, start_date=None, end_date=None):
+        """Get Contract Placement Time Data - same structure as TOA but filtered for contract placements"""
         if not start_date:
             # Default to start of current month
             now = datetime.now()
@@ -283,19 +248,34 @@ class BullhornAPI:
         end_timestamp = int(end_date.timestamp() * 1000)
         
         fields = [
-            "id", "placement(id,clientCorporation(name),candidate(firstName,lastName))",
+            "id", 
+            "placement(id,employmentType,clientCorporation(name),candidate(firstName,lastName))",
             "dateWorked", "hours", "billAmount", "payAmount",
             "placement.correlatedCustomText34", "placement.correlatedCustomText38",
             "placement.correlatedCustomText10", "placement.correlatedCustomText1"
         ]
         
+        # Get all PlacementTimeUnit records for the date range
         where_clause = f"dateWorked>={start_timestamp} AND dateWorked<={end_timestamp}"
         
-        toa_records = self.fetch_all_pages("PlacementTimeUnit", fields, where_clause)
+        all_time_records = self.fetch_all_pages("PlacementTimeUnit", fields, where_clause)
         
-        return self.format_toa_data(toa_records)
+        # Filter for only contract placement types
+        contract_types = ['Contract', 'Temporary', 'Contract to Hire', 'Temp to Perm']
+        contract_time_records = []
+        
+        for record in all_time_records:
+            placement_info = record.get("placement", {})
+            employment_type = placement_info.get("employmentType", "")
+            
+            if employment_type in contract_types:
+                contract_time_records.append(record)
+        
+        logger.info(f"Filtered {len(contract_time_records)} contract time records from {len(all_time_records)} total time records")
+        
+        return self.format_contract_time_data(contract_time_records)
 
-    def format_placement_data(self, placements):
+    def format_placement_data(self, placements, placement_type):
         """Format permanent placement data for commission portal"""
         formatted_placements = []
         
@@ -323,17 +303,9 @@ class BullhornAPI:
             if placement.get("clientCorporation"):
                 client_name = placement["clientCorporation"].get("name", "")
             
-            # Get candidate name
-            candidate_name = ""
-            if placement.get("candidate"):
-                candidate = placement["candidate"]
-                first_name = candidate.get("firstName", "")
-                last_name = candidate.get("lastName", "")
-                candidate_name = f"{first_name} {last_name}".strip()
-            
-            # Calculate commission (assuming 10% default rate)
+            # Calculate commission for permanent placements
             flat_fee = float(placement.get("flatFee", 0))
-            commission_rate = 0.10  # 10% default, could be customized
+            commission_rate = 0.10  # 10% default for permanent
             commission = flat_fee * commission_rate
             
             formatted_placement = {
@@ -347,7 +319,6 @@ class BullhornAPI:
                 'month': date_begin.strftime('%B') if date_begin else 'Unknown',
                 'day': date_begin.day if date_begin else 1,
                 'placement_id': placement.get("id"),
-                'candidate': candidate_name,
                 'invoice_date': invoice_date.strftime('%Y-%m-%d') if invoice_date else None
             }
             
@@ -355,14 +326,14 @@ class BullhornAPI:
         
         return formatted_placements
 
-    def format_toa_data(self, toa_records):
-        """Format TOA data for commission portal"""
-        formatted_toa = []
+    def format_contract_time_data(self, contract_time_records):
+        """Format contract time data for commission portal"""
+        formatted_contract_time = []
         
-        # Group TOA records by placement/employee/client for monthly aggregation
-        toa_groups = {}
+        # Group contract time records by placement/employee/client for monthly aggregation
+        contract_groups = {}
         
-        for record in toa_records:
+        for record in contract_time_records:
             date_worked = self.format_bullhorn_date(record.get("dateWorked"))
             if not date_worked:
                 continue
@@ -382,14 +353,18 @@ class BullhornAPI:
             if placement_info.get("clientCorporation"):
                 client_name = placement_info["clientCorporation"].get("name", "")
             
+            # Get employment type for status
+            employment_type = placement_info.get("employmentType", "Contract")
+            
             # Create grouping key
             month_key = f"{date_worked.year}-{date_worked.month:02d}"
-            group_key = f"{primary_employee}|{client_name}|{month_key}"
+            group_key = f"{primary_employee}|{client_name}|{month_key}|{employment_type}"
             
-            if group_key not in toa_groups:
-                toa_groups[group_key] = {
+            if group_key not in contract_groups:
+                contract_groups[group_key] = {
                     'employee_name': primary_employee,
                     'client': client_name,
+                    'employment_type': employment_type,
                     'month': date_worked.strftime('%B'),
                     'year': date_worked.year,
                     'total_hours': 0,
@@ -399,26 +374,29 @@ class BullhornAPI:
                 }
             
             # Add to group
-            group = toa_groups[group_key]
+            group = contract_groups[group_key]
             group['total_hours'] += float(record.get("hours", 0))
             group['total_bill_amount'] += float(record.get("billAmount", 0))
             group['total_pay_amount'] += float(record.get("payAmount", 0))
             group['records'].append(record)
         
         # Convert groups to formatted records
-        for group_key, group in toa_groups.items():
+        for group_key, group in contract_groups.items():
             # Calculate GP and commission
             gp = group['total_bill_amount'] - group['total_pay_amount']
             hourly_gp = gp / group['total_hours'] if group['total_hours'] > 0 else 0
             
-            # Determine commission rate (could be customized based on status/client)
+            # Determine commission rate (10% for contract time work)
             commission_rate = 0.10  # 10% default
             commission = gp * commission_rate
+            
+            # Create status showing it's contract time data
+            status = f"Contract ({group['employment_type']})"
             
             formatted_record = {
                 'employee_name': group['employee_name'],
                 'client': group['client'],
-                'status': 'Contract',
+                'status': status,
                 'gp': round(gp, 2),
                 'hourly_gp': round(hourly_gp, 2),
                 'commission_rate': '10.00%',
@@ -429,9 +407,9 @@ class BullhornAPI:
                 'total_bill_amount': round(group['total_bill_amount'], 2)
             }
             
-            formatted_toa.append(formatted_record)
+            formatted_contract_time.append(formatted_record)
         
-        return formatted_toa
+        return formatted_contract_time
 
     def format_bullhorn_date(self, timestamp):
         """Convert Bullhorn timestamp to datetime object"""
@@ -443,12 +421,12 @@ class BullhornAPI:
             return None
 
 # Helper function to get commission data from Bullhorn
-def get_bullhorn_commission_data(include_toa=True, include_permanent=True, start_date=None):
+def get_bullhorn_commission_data(include_contract_time=True, include_permanent=True, start_date=None):
     """
     Main function to get all commission data from Bullhorn
     
     Args:
-        include_toa (bool): Include Time on Assignment data
+        include_contract_time (bool): Include Contract Time data (replaces TOA)
         include_permanent (bool): Include permanent placement data
         start_date (datetime): Start date for data retrieval
         
@@ -470,11 +448,11 @@ def get_bullhorn_commission_data(include_toa=True, include_permanent=True, start
             all_data.extend(permanent_data)
             logger.info(f"Fetched {len(permanent_data)} permanent placements")
         
-        if include_toa:
-            logger.info("Fetching TOA data...")
-            toa_data = api.get_toa_data(start_date)
-            all_data.extend(toa_data)
-            logger.info(f"Fetched {len(toa_data)} TOA records")
+        if include_contract_time:
+            logger.info("Fetching contract time data...")
+            contract_time_data = api.get_contract_time_data(start_date)
+            all_data.extend(contract_time_data)
+            logger.info(f"Fetched {len(contract_time_data)} contract time records")
         
         logger.info(f"Total commission records: {len(all_data)}")
         return all_data

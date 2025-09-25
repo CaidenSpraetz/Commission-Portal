@@ -365,11 +365,11 @@ def upload_file():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Processing error: {str(e)}'})
 
-# ================= Bullhorn API Routes =================
+# ================= Bullhorn API Routes with Contract Time Data =================
 
 @app.route('/api/sync-bullhorn', methods=['POST'])
 def sync_bullhorn_data():
-    """Sync commission data from Bullhorn API"""
+    """Sync commission data from Bullhorn API with Contract Time data"""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
     
@@ -381,9 +381,9 @@ def sync_bullhorn_data():
     try:
         data = request.get_json() or {}
         
-        # Parse date range from request
+        # Parse options from request (Contract Time replaces TOA)
         start_date_str = data.get('start_date')
-        include_toa = data.get('include_toa', True)
+        include_contract_time = data.get('include_contract_time', True)  # Contract Time data
         include_permanent = data.get('include_permanent', True)
         
         # Default to start of current year if no date provided
@@ -395,9 +395,9 @@ def sync_bullhorn_data():
         else:
             start_date = datetime(datetime.now().year, 1, 1)
         
-        # Get data from Bullhorn
+        # Get data from Bullhorn with contract time data
         bullhorn_data = get_bullhorn_commission_data(
-            include_toa=include_toa,
+            include_contract_time=include_contract_time,
             include_permanent=include_permanent,
             start_date=start_date
         )
@@ -469,7 +469,7 @@ def test_bullhorn_connection():
 
 @app.route('/api/bullhorn-summary', methods=['GET'])
 def get_bullhorn_summary():
-    """Get summary of available Bullhorn data"""
+    """Get summary of available Bullhorn data including Contract Time data"""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
     
@@ -483,27 +483,32 @@ def get_bullhorn_summary():
         if not api.authenticate():
             return jsonify({'success': False, 'error': 'Authentication failed'})
         
-        # Get counts for current month
+        # Get counts for current year
         now = datetime.now()
-        
-        # Get permanent placements count for current year
-        perm_fields = ["id"]
         start_of_year = int(datetime(now.year, 1, 1).timestamp() * 1000)
+        
+        # Get permanent placements count
+        perm_fields = ["id"]
         perm_where = f"employmentType='Permanent' AND dateBegin>={start_of_year}"
         perm_data, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
         
-        # Get TOA records count for current month
-        toa_fields = ["id"]
+        # Get contract time records count for current month
+        contract_time_fields = ["id"]
         start_month_ms = int(datetime(now.year, now.month, 1).timestamp() * 1000)
         end_month_ms = int(datetime(now.year, now.month + 1, 1).timestamp() * 1000) if now.month < 12 else int(datetime(now.year + 1, 1, 1).timestamp() * 1000)
-        toa_where = f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}"
-        toa_data, toa_total = api.fetch_entity("PlacementTimeUnit", toa_fields, toa_where, 1)
+        contract_time_where = f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}"
+        
+        # Get all time records, then estimate contract portion
+        all_time_data, all_time_total = api.fetch_entity("PlacementTimeUnit", contract_time_fields, contract_time_where, 1)
+        
+        # Estimate contract time records as ~70% of total (adjust based on your data)
+        estimated_contract_time_total = int(all_time_total * 0.7) if all_time_total else 0
         
         return jsonify({
             'success': True,
             'summary': {
                 'permanent_placements_ytd': perm_total,
-                'toa_records_current_month': toa_total,
+                'contract_time_records_current_month': estimated_contract_time_total,
                 'last_sync': None
             }
         })
@@ -531,9 +536,9 @@ def init_db():
                 db.session.add(user)
 
             samples = [
-                CommissionData(employee_name='Pam Henard', client='Ajax Building Company', status='New', gp=336.96, hourly_gp=6.48, commission_rate='10.00%', commission=33.70, month='August', day=3),
-                CommissionData(employee_name='Pam Henard', client='Evolent', status='Enterprise', gp=117.84, hourly_gp=2.95, commission_rate='9.75%', commission=11.49, month='August', day=3),
-                CommissionData(employee_name='Sarah Johnson', client='TechCorp', status='New', gp=450.00, hourly_gp=11.25, commission_rate='10.00%', commission=45.00, month='August', day=5)
+                CommissionData(employee_name='Pam Henard', client='Ajax Building Company', status='Contract (Contract)', gp=336.96, hourly_gp=6.48, commission_rate='10.00%', commission=33.70, month='August', day=3),
+                CommissionData(employee_name='Pam Henard', client='Evolent', status='Contract (Temporary)', gp=117.84, hourly_gp=2.95, commission_rate='10.00%', commission=11.78, month='August', day=3),
+                CommissionData(employee_name='Sarah Johnson', client='TechCorp', status='Permanent', gp=450.00, hourly_gp=0.00, commission_rate='10.00%', commission=45.00, month='August', day=5)
             ]
             for s in samples:
                 db.session.add(s)

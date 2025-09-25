@@ -5,7 +5,7 @@ import hashlib
 import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 # Import Bullhorn API module
 try:
@@ -37,6 +37,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 db = SQLAlchemy(app)
 
 class Employee(db.Model):
+    __tablename__ = 'employee'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
@@ -47,9 +48,11 @@ class Employee(db.Model):
     status = db.Column(db.String(10), default='Active')
 
 class CommissionData(db.Model):
+    __tablename__ = 'commission_data'  # explicit to match SQLite table
     id = db.Column(db.Integer, primary_key=True)
     employee_name = db.Column(db.String(100), nullable=False)
-    employee_id = db.Column(db.Integer)  # link to Employee.id when matched
+    # Columns below might have been added after initial DB creation
+    employee_id = db.Column(db.Integer)                 # link to Employee.id when matched
     client = db.Column(db.String(200))
     status = db.Column(db.String(50))
     gp = db.Column(db.Float)
@@ -58,36 +61,31 @@ class CommissionData(db.Model):
     commission = db.Column(db.Float)
     month = db.Column(db.String(20))
     day = db.Column(db.Integer)
-    year = db.Column(db.Integer, default=datetime.now().year)        # NEW
-    placement_id = db.Column(db.Integer)                              # NEW (perm)
-    unique_key = db.Column(db.String(200), unique=True)               # NEW (upsert key)
+    year = db.Column(db.Integer, default=datetime.now().year)
+    placement_id = db.Column(db.Integer)
+    unique_key = db.Column(db.String(200), unique=True) # upsert key (unique index ensured in migration)
 
 # ================= Password Security Helpers =================
 def hash_password(password):
-    """Hash password - try bcrypt first, fallback to SHA256"""
+    """Hash password - try werkzeug pbkdf2 first, fallback to SHA256"""
     try:
         from werkzeug.security import generate_password_hash
         return generate_password_hash(password, method='pbkdf2:sha256')
     except ImportError:
-        # Fallback to SHA256 if werkzeug not available
         return hashlib.sha256(password.encode()).hexdigest()
 
-def verify_password(password, hash):
-    """Verify password against hash - try multiple methods"""
+def verify_password(password, hash_val):
+    """Verify password against hash - try werkzeug first, fallback to SHA256"""
     try:
         from werkzeug.security import check_password_hash
-        if check_password_hash(hash, password):
+        if check_password_hash(hash_val, password):
             return True
     except ImportError:
         pass
-    
-    # Fallback: check SHA256
-    sha256_hash = hashlib.sha256(password.encode()).hexdigest()
-    return hash == sha256_hash
+    return hashlib.sha256(password.encode()).hexdigest() == hash_val
 
-# ================= Existing Helpers =================
+# ================= CSV/XLSX Helpers =================
 def _first_match(row_map, candidates):
-    """Return first non-empty value by scanning row_map (lowercased headers -> values)."""
     for key in candidates:
         if key in row_map:
             val = row_map.get(key, "")
@@ -96,24 +94,19 @@ def _first_match(row_map, candidates):
     return None
 
 def _parse_date(value):
-    """Parse many date shapes (strings, pandas timestamps, Excel serials)."""
     if value is None or (isinstance(value, str) and not value.strip()):
         return None
-    # pandas Timestamp
     if isinstance(value, (pd.Timestamp, )):
         return value.to_pydatetime()
-    # Excel serial (rough bounds)
     if isinstance(value, (int, float)) and 20000 < float(value) < 60000:
         base = pd.Timestamp('1899-12-30')
         try:
             return (base + pd.Timedelta(days=float(value))).to_pydatetime()
         except Exception:
             pass
-    # generic
     try:
         dt = pd.to_datetime(value, errors='coerce', infer_datetime_format=True, utc=False)
         if pd.notna(dt):
-            # If it's a Series/Index, take first
             if isinstance(dt, (pd.Series, pd.Index)):
                 dt = dt.iloc[0]
             return dt.to_pydatetime()
@@ -122,12 +115,6 @@ def _parse_date(value):
     return None
 
 def _infer_commission_rate(status, gp, provided_rate):
-    """
-    Returns (rate_str, rate_float). Priority:
-    1) provided_rate in file (like '9.75%')
-    2) status-based: if contains 'enterprise' -> 9.75%, else 10.00%
-    """
-    # Provided explicit rate like '9.75%' or '0.0975'
     if provided_rate:
         s = str(provided_rate).strip()
         try:
@@ -136,18 +123,17 @@ def _infer_commission_rate(status, gp, provided_rate):
                 return f"{(rf*100):.2f}%", rf
             else:
                 rf = float(s)
-                if rf > 1:  # looks like 9.75 not 0.0975
+                if rf > 1:
                     rf = rf / 100.0
                 return f"{(rf*100):.2f}%", rf
         except Exception:
             pass
-    # Status-based default
     st = (status or "").lower()
     if "enterprise" in st:
         return "9.75%", 0.0975
     return "10.00%", 0.10
 
-# ============ NEW: simple name mapping and unique keys ============
+# ============ Matching / keys ============
 def _norm(s):
     return (s or "").strip().lower()
 
@@ -165,10 +151,8 @@ def match_employee_name_to_record(name: str):
     return None
 
 def _unique_key_for(record: dict):
-    # Permanent placement: stable placement_id
     if record.get('placement_id'):
         return f"perm:{record['placement_id']}"
-    # Contract/Temp monthly aggregate
     y = record.get('year') or datetime.now().year
     return f"contract:{_norm(record.get('employee_name'))}|{_norm(record.get('client'))}|{record.get('month')}|{y}|{_norm(record.get('status'))}"
 
@@ -188,9 +172,7 @@ def login():
     if not username or not password:
         return jsonify({'success': False, 'error': 'Username and password required'})
 
-    employee = Employee.query.filter_by(
-        username=username, status='Active'
-    ).first()
+    employee = Employee.query.filter_by(username=username, status='Active').first()
 
     if employee and verify_password(password, employee.password_hash):
         session['user_id'] = employee.id
@@ -299,7 +281,7 @@ def get_commission_data():
         'unique_key': cd.unique_key
     } for cd in commission_data])
 
-# ================= File Upload (unchanged logic; persists to CommissionData) =================
+# ================= File Upload =================
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     if 'user_id' not in session:
@@ -314,27 +296,20 @@ def upload_file():
         return jsonify({'success': False, 'error': 'No file selected'})
 
     try:
-        # Save original to persisted storage
         filename = secure_filename(file.filename).lower()
         saved_path = os.path.join(UPLOAD_DIR, filename)
         file.stream.seek(0)
         file.save(saved_path)
 
-        # Parse with pandas (explicit engines)
         if filename.endswith('.csv'):
             df = pd.read_csv(saved_path)
-        elif filename.endswith('.xlsx'):
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
             df = pd.read_excel(saved_path, engine='openpyxl')
-        elif filename.endswith('.xls'):
-            df = pd.read_excel(saved_path, engine='openpyxl')  # openpyxl can handle .xls too
         else:
             return jsonify({'success': False, 'error': 'Unsupported file format'})
 
-        # Normalize columns to lowercase once for easier scanning
-        lower_cols = [str(c).strip().lower() for c in df.columns]
-        df.columns = lower_cols
+        df.columns = [str(c).strip().lower() for c in df.columns]
 
-        # Candidate header sets
         CLIENT_COLS = ['client', 'client name', 'customer', 'company', 'account']
         GP_COLS = ['gp', 'gross profit', 'profit', 'gp amount']
         EMP_COLS = ['employee', 'employee name', 'recruiter', 'sales', 'sales rep', 'owner', 'consultant']
@@ -346,7 +321,6 @@ def upload_file():
         processed_count = 0
 
         for _, row in df.iterrows():
-            # Build a row map: header -> value
             row_map = {col: row[col] for col in df.columns}
 
             client = _first_match(row_map, CLIENT_COLS)
@@ -356,7 +330,6 @@ def upload_file():
             status_val = _first_match(row_map, STATUS_COLS)
             provided_rate = _first_match(row_map, RATE_COLS)
 
-            # Commission date (month/day) from the first date-like column found
             date_val = _first_match(row_map, DATE_COLS)
             dt = _parse_date(date_val)
             if dt is None:
@@ -368,23 +341,18 @@ def upload_file():
                 day_num = int(dt.day)
                 year_num = dt.year
 
-            # Coerce GP numeric
             gp = pd.to_numeric(gp_val, errors='coerce') if gp_val is not None else None
             if client and employee_name and gp is not None and not pd.isna(gp):
-                # calculate hours, hourly_gp
                 hours = pd.to_numeric(hours_val, errors='coerce') if hours_val is not None else None
                 if hours is None or pd.isna(hours) or float(hours) <= 0:
                     hours = 40.0
                 hourly_gp = float(gp) / float(hours)
 
-                # commission rate
                 rate_str, rate_float = _infer_commission_rate(status_val, gp, provided_rate)
                 commission_amt = round(float(gp) * rate_float, 2)
 
-                # upsert key for uploads (prevent dupes across re-uploads)
                 ukey = f"upload:{_norm(employee_name)}|{_norm(client)}|{month_name}|{year_num}|{_norm(status_val or 'new')}|{round(float(gp),2)}"
 
-                # try to link employee
                 emp_row = match_employee_name_to_record(str(employee_name))
                 emp_id = emp_row.id if emp_row else None
 
@@ -405,7 +373,8 @@ def upload_file():
                     unique_key=ukey
                 )
                 if existing:
-                    for k, v in payload.items(): setattr(existing, k, v)
+                    for k, v in payload.items():
+                        setattr(existing, k, v)
                 else:
                     db.session.add(CommissionData(**payload))
                 processed_count += 1
@@ -417,14 +386,11 @@ def upload_file():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Processing error: {str(e)}'})
 
-# ================= Bullhorn API Routes with Contract Time Data & Upsert =================
-
+# ================= Bullhorn API Routes =================
 @app.route('/api/sync-bullhorn', methods=['POST'])
 def sync_bullhorn_data():
-    """Sync commission data from Bullhorn API with Contract Time data (upserted, employee-linked)"""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
-    
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
@@ -435,7 +401,7 @@ def sync_bullhorn_data():
         start_date_str = data.get('start_date')
         include_contract_time = data.get('include_contract_time', True)
         include_permanent = data.get('include_permanent', True)
-        
+
         if start_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
@@ -449,16 +415,12 @@ def sync_bullhorn_data():
             include_permanent=include_permanent,
             start_date=start_date
         )
-        
         if not bullhorn_data:
             return jsonify({'success': False, 'error': 'No data retrieved from Bullhorn API'})
-        
+
         processed_count = 0
         for record in bullhorn_data:
-            # Build deterministic upsert key
             ukey = _unique_key_for(record)
-
-            # link to local Employee
             emp_row = match_employee_name_to_record(record.get('employee_name'))
             emp_id = emp_row.id if emp_row else None
 
@@ -479,94 +441,67 @@ def sync_bullhorn_data():
                 unique_key=ukey
             )
             if existing:
-                for k, v in payload.items(): setattr(existing, k, v)
+                for k, v in payload.items():
+                    setattr(existing, k, v)
             else:
                 db.session.add(CommissionData(**payload))
             processed_count += 1
-        
+
         db.session.commit()
-        return jsonify({
-            'success': True, 
-            'processed': processed_count,
-            'total_fetched': len(bullhorn_data)
-        })
-        
+        return jsonify({'success': True, 'processed': processed_count, 'total_fetched': len(bullhorn_data)})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Sync error: {str(e)}'})
 
 @app.route('/api/test-bullhorn', methods=['GET'])
 def test_bullhorn_connection():
-    """Test Bullhorn API connection"""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
-    
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
-    
     try:
         api = BullhornAPI()
-        success = api.authenticate()
-        
-        if success:
-            return jsonify({
-                'success': True, 
-                'message': 'Successfully connected to Bullhorn API',
-                'rest_url': api.rest_url
-            })
-        else:
-            return jsonify({
-                'success': False, 
-                'error': 'Failed to authenticate with Bullhorn API'
-            })
-            
+        if api.authenticate():
+            return jsonify({'success': True, 'message': 'Successfully connected to Bullhorn API', 'rest_url': api.rest_url})
+        return jsonify({'success': False, 'error': 'Failed to authenticate with Bullhorn API'})
     except Exception as e:
         return jsonify({'success': False, 'error': f'Connection test failed: {str(e)}'})
 
 @app.route('/api/bullhorn-summary', methods=['GET'])
 def get_bullhorn_summary():
-    """Get summary of available Bullhorn data including Contract Time data"""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
-    
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     if session.get('role') not in ['admin', 'manager']:
         return jsonify({'error': 'Insufficient permissions'}), 403
-    
     try:
         api = BullhornAPI()
         if not api.authenticate():
             return jsonify({'success': False, 'error': 'Authentication failed'})
-        
-        # Example lightweight ping/summary (left as-is)
+
         now = datetime.now()
         start_of_year = int(datetime(now.year, 1, 1).timestamp() * 1000)
-        perm_fields = ["id"]
-        perm_where = f"employmentType='Permanent' AND dateBegin>={start_of_year}"
-        _, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
+        _, perm_total = api.fetch_entity("Placement", ["id"], f"employmentType='Permanent' AND dateBegin>={start_of_year}", 1)
 
-        # Contract time: count this month (rough)
         start_month_ms = int(datetime(now.year, now.month, 1).timestamp() * 1000)
-        end_month_ms = int(datetime(now.year + (1 if now.month == 12 else 0), (1 if now.month == 12 else now.month + 1), 1).timestamp() * 1000)
+        next_month = datetime(now.year + (1 if now.month == 12 else 0), 1 if now.month == 12 else now.month + 1, 1)
+        end_month_ms = int(next_month.timestamp() * 1000)
         _, all_time_total = api.fetch_entity("PlacementTimeUnit", ["id"], f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}", 1)
         estimated_contract_time_total = int(all_time_total * 0.7) if all_time_total else 0
-        
-        return jsonify({
-            'success': True,
-            'summary': {
-                'permanent_placements_ytd': perm_total,
-                'contract_time_records_current_month': estimated_contract_time_total,
-                'last_sync': None
-            }
-        })
-        
+
+        return jsonify({'success': True, 'summary': {
+            'permanent_placements_ytd': perm_total,
+            'contract_time_records_current_month': estimated_contract_time_total,
+            'last_sync': None
+        }})
     except Exception as e:
         return jsonify({'success': False, 'error': f'Summary error: {str(e)}'})
 
-# ================= NEW: Summary Endpoints =================
+# ================= Summary Endpoints =================
 @app.route('/api/summary/monthly', methods=['GET'])
 def summary_monthly():
     if 'user_id' not in session:
@@ -597,7 +532,7 @@ def summary_monthly():
         'totals': {
             'gp': float(row.gp or 0.0),
             'commission': float(row.commission or 0.0),
-            'hours': 0  # (optional) store & sum hours in DB if you want this populated
+            'hours': 0
         }
     })
 
@@ -623,41 +558,58 @@ def summary_ytd():
     rows = [{'employee': e, 'gp': float(gp or 0), 'commission': float(cm or 0)} for e, gp, cm in q]
     return jsonify({'success': True, 'year': year, 'rows': rows})
 
-# ================= Init DB & seed sample data =================
+# ================= Migration Helpers & Init =================
 def _column_exists(table_name: str, column_name: str) -> bool:
     try:
-        res = db.session.execute(f"PRAGMA table_info({table_name});").fetchall()
+        res = db.session.execute(text(f"PRAGMA table_info({table_name});")).fetchall()
         cols = {r[1] for r in res}
         return column_name in cols
     except Exception:
         return False
 
-def _ensure_commissiondata_columns():
-    # Lightweight migration for SQLite
-    add_cols = []
-    if not _column_exists('CommissionData', 'employee_id'):
-        add_cols.append("ALTER TABLE CommissionData ADD COLUMN employee_id INTEGER;")
-    if not _column_exists('CommissionData', 'year'):
-        add_cols.append("ALTER TABLE CommissionData ADD COLUMN year INTEGER;")
-    if not _column_exists('CommissionData', 'placement_id'):
-        add_cols.append("ALTER TABLE CommissionData ADD COLUMN placement_id INTEGER;")
-    if not _column_exists('CommissionData', 'unique_key'):
-        add_cols.append("ALTER TABLE CommissionData ADD COLUMN unique_key VARCHAR(200);")
+def _ensure_commissiondata_columns_and_indexes():
+    """
+    Lightweight, idempotent migration for SQLite:
+    - Adds employee_id, year, placement_id, unique_key if missing
+    - Ensures UNIQUE INDEX on unique_key
+    """
+    table = CommissionData.__tablename__  # "commission_data"
+    add_sql = []
+    if not _column_exists(table, 'employee_id'):
+        add_sql.append(f"ALTER TABLE {table} ADD COLUMN employee_id INTEGER;")
+    if not _column_exists(table, 'year'):
+        add_sql.append(f"ALTER TABLE {table} ADD COLUMN year INTEGER;")
+    if not _column_exists(table, 'placement_id'):
+        add_sql.append(f"ALTER TABLE {table} ADD COLUMN placement_id INTEGER;")
+    if not _column_exists(table, 'unique_key'):
+        add_sql.append(f"ALTER TABLE {table} ADD COLUMN unique_key VARCHAR(200);")
 
-    for sql in add_cols:
+    for sql_stmt in add_sql:
         try:
-            db.session.execute(sql)
+            db.session.execute(text(sql_stmt))
         except Exception:
+            # Ignore if already applied in a concurrent process
             pass
-    if add_cols:
-        try: db.session.commit()
-        except Exception: db.session.rollback()
+
+    # Create a unique index on unique_key if it doesn't exist
+    try:
+        db.session.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS commission_data_unique_key_idx ON commission_data(unique_key);"
+        ))
+    except Exception:
+        pass
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 def init_db():
     with app.app_context():
         db.create_all()
-        _ensure_commissiondata_columns()
+        _ensure_commissiondata_columns_and_indexes()
 
+        # Seed once
         if not Employee.query.filter_by(username='admin').first():
             users = [
                 {'name': 'Administrator', 'email': 'admin@company.com', 'username': 'admin', 'password': 'admin123', 'role': 'admin', 'job_function': 'admin'},

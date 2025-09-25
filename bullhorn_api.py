@@ -284,7 +284,10 @@ class BackOfficeAPI:
         last_error = None
         
         for endpoint in endpoint_variants:
-            url = f"{self.timesheets_base}{endpoint}"
+            # Fix URL construction - ensure proper slash handling
+            base = self.timesheets_base.rstrip('/')
+            endpoint = endpoint.lstrip('/')
+            url = f"{base}/{endpoint}"
             try:
                 logger.info(f"Trying BBO endpoint: {url}")
                 resp = requests.get(url, headers=self.base_headers, params=params, timeout=60)

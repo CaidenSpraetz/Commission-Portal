@@ -708,6 +708,20 @@
             alertClass = 'alert-warning';
             retryButton = '<button class="btn btn-primary" onclick="getBBOSummary()" style="margin-top:10px;">Retry</button>';
             showAlert('Back Office service is temporarily unavailable. Please try again in a few minutes.', 'warning');
+          } else if(data.error_type === 'url_configuration_error'){
+            errorMessage = `
+              <strong>URL Configuration Issue</strong><br>
+              The Back Office URL is not properly configured. 
+              Please check your BBO_REST_DOMAIN or BBO_TIMESHEETS_BASE environment variable.<br>
+              <small style="color:#666;">Error: ${data.error}</small>
+            `;
+            showAlert('Back Office URL configuration error. Please check your environment variables.', 'error');
+          } else if(data.error_type === 'configuration_missing'){
+            errorMessage = `
+              <strong>Missing Configuration</strong><br>
+              Back Office environment variables are not set. 
+              Please configure BBO_REST_DOMAIN, BBO_API_KEY, BBO_USERNAME, and BBO_PASSWORD.
+            `;
           } else if(data.error_type === 'endpoint_not_found'){
             errorMessage = `
               <strong>Configuration Issue</strong><br>

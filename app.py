@@ -5,6 +5,7 @@ import hashlib
 import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from sqlalchemy import func
 
 # Import Bullhorn API module
 try:
@@ -48,6 +49,7 @@ class Employee(db.Model):
 class CommissionData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employee_name = db.Column(db.String(100), nullable=False)
+    employee_id = db.Column(db.Integer)  # link to Employee.id when matched
     client = db.Column(db.String(200))
     status = db.Column(db.String(50))
     gp = db.Column(db.Float)
@@ -56,6 +58,9 @@ class CommissionData(db.Model):
     commission = db.Column(db.Float)
     month = db.Column(db.String(20))
     day = db.Column(db.Integer)
+    year = db.Column(db.Integer, default=datetime.now().year)        # NEW
+    placement_id = db.Column(db.Integer)                              # NEW (perm)
+    unique_key = db.Column(db.String(200), unique=True)               # NEW (upsert key)
 
 # ================= Password Security Helpers =================
 def hash_password(password):
@@ -141,6 +146,31 @@ def _infer_commission_rate(status, gp, provided_rate):
     if "enterprise" in st:
         return "9.75%", 0.0975
     return "10.00%", 0.10
+
+# ============ NEW: simple name mapping and unique keys ============
+def _norm(s):
+    return (s or "").strip().lower()
+
+def match_employee_name_to_record(name: str):
+    if not name:
+        return None
+    nm = _norm(name)
+    emp = Employee.query.filter(func.lower(Employee.name) == nm).first()
+    if emp:
+        return emp
+    nospace = "".join(nm.split())
+    for e in Employee.query.all():
+        if "".join(_norm(e.name).split()) == nospace:
+            return e
+    return None
+
+def _unique_key_for(record: dict):
+    # Permanent placement: stable placement_id
+    if record.get('placement_id'):
+        return f"perm:{record['placement_id']}"
+    # Contract/Temp monthly aggregate
+    y = record.get('year') or datetime.now().year
+    return f"contract:{_norm(record.get('employee_name'))}|{_norm(record.get('client'))}|{record.get('month')}|{y}|{_norm(record.get('status'))}"
 
 # ================= Routes =================
 @app.route('/')
@@ -255,6 +285,7 @@ def get_commission_data():
     return jsonify([{
         'id': cd.id,
         'employee': cd.employee_name,
+        'employee_id': cd.employee_id,
         'client': cd.client,
         'status': cd.status,
         'gp': cd.gp,
@@ -262,9 +293,13 @@ def get_commission_data():
         'commission_rate': cd.commission_rate,
         'commission': cd.commission,
         'month': cd.month,
-        'day': cd.day
+        'day': cd.day,
+        'year': cd.year,
+        'placement_id': cd.placement_id,
+        'unique_key': cd.unique_key
     } for cd in commission_data])
 
+# ================= File Upload (unchanged logic; persists to CommissionData) =================
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     if 'user_id' not in session:
@@ -327,9 +362,11 @@ def upload_file():
             if dt is None:
                 month_name = 'Current'
                 day_num = 1
+                year_num = datetime.now().year
             else:
                 month_name = dt.strftime('%B')
                 day_num = int(dt.day)
+                year_num = dt.year
 
             # Coerce GP numeric
             gp = pd.to_numeric(gp_val, errors='coerce') if gp_val is not None else None
@@ -344,8 +381,17 @@ def upload_file():
                 rate_str, rate_float = _infer_commission_rate(status_val, gp, provided_rate)
                 commission_amt = round(float(gp) * rate_float, 2)
 
-                commission_data = CommissionData(
+                # upsert key for uploads (prevent dupes across re-uploads)
+                ukey = f"upload:{_norm(employee_name)}|{_norm(client)}|{month_name}|{year_num}|{_norm(status_val or 'new')}|{round(float(gp),2)}"
+
+                # try to link employee
+                emp_row = match_employee_name_to_record(str(employee_name))
+                emp_id = emp_row.id if emp_row else None
+
+                existing = CommissionData.query.filter_by(unique_key=ukey).first()
+                payload = dict(
                     employee_name=str(employee_name),
+                    employee_id=emp_id,
                     client=str(client),
                     status=str(status_val) if status_val else 'New',
                     gp=float(gp),
@@ -353,9 +399,15 @@ def upload_file():
                     commission_rate=rate_str,
                     commission=commission_amt,
                     month=month_name,
-                    day=day_num
+                    day=day_num,
+                    year=year_num,
+                    placement_id=None,
+                    unique_key=ukey
                 )
-                db.session.add(commission_data)
+                if existing:
+                    for k, v in payload.items(): setattr(existing, k, v)
+                else:
+                    db.session.add(CommissionData(**payload))
                 processed_count += 1
 
         db.session.commit()
@@ -365,11 +417,11 @@ def upload_file():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Processing error: {str(e)}'})
 
-# ================= Bullhorn API Routes with Contract Time Data =================
+# ================= Bullhorn API Routes with Contract Time Data & Upsert =================
 
 @app.route('/api/sync-bullhorn', methods=['POST'])
 def sync_bullhorn_data():
-    """Sync commission data from Bullhorn API with Contract Time data"""
+    """Sync commission data from Bullhorn API with Contract Time data (upserted, employee-linked)"""
     if not BULLHORN_AVAILABLE:
         return jsonify({'success': False, 'error': 'Bullhorn API module not available'})
     
@@ -380,13 +432,10 @@ def sync_bullhorn_data():
 
     try:
         data = request.get_json() or {}
-        
-        # Parse options from request (Contract Time replaces TOA)
         start_date_str = data.get('start_date')
-        include_contract_time = data.get('include_contract_time', True)  # Contract Time data
+        include_contract_time = data.get('include_contract_time', True)
         include_permanent = data.get('include_permanent', True)
         
-        # Default to start of current year if no date provided
         if start_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
@@ -394,8 +443,7 @@ def sync_bullhorn_data():
                 return jsonify({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'})
         else:
             start_date = datetime(datetime.now().year, 1, 1)
-        
-        # Get data from Bullhorn with contract time data
+
         bullhorn_data = get_bullhorn_commission_data(
             include_contract_time=include_contract_time,
             include_permanent=include_permanent,
@@ -405,26 +453,36 @@ def sync_bullhorn_data():
         if not bullhorn_data:
             return jsonify({'success': False, 'error': 'No data retrieved from Bullhorn API'})
         
-        # Insert new data
         processed_count = 0
         for record in bullhorn_data:
-            try:
-                commission_data = CommissionData(
-                    employee_name=record['employee_name'],
-                    client=record['client'],
-                    status=record['status'],
-                    gp=record['gp'],
-                    hourly_gp=record['hourly_gp'],
-                    commission_rate=record['commission_rate'],
-                    commission=record['commission'],
-                    month=record['month'],
-                    day=record['day']
-                )
-                db.session.add(commission_data)
-                processed_count += 1
-            except Exception as e:
-                print(f"Error processing record: {e}")
-                continue
+            # Build deterministic upsert key
+            ukey = _unique_key_for(record)
+
+            # link to local Employee
+            emp_row = match_employee_name_to_record(record.get('employee_name'))
+            emp_id = emp_row.id if emp_row else None
+
+            existing = CommissionData.query.filter_by(unique_key=ukey).first()
+            payload = dict(
+                employee_name=record.get('employee_name'),
+                employee_id=emp_id,
+                client=record.get('client'),
+                status=record.get('status'),
+                gp=float(record.get('gp') or 0),
+                hourly_gp=float(record.get('hourly_gp') or 0),
+                commission_rate=record.get('commission_rate'),
+                commission=float(record.get('commission') or 0),
+                month=record.get('month'),
+                day=int(record.get('day') or 1),
+                year=int(record.get('year') or datetime.now().year),
+                placement_id=record.get('placement_id'),
+                unique_key=ukey
+            )
+            if existing:
+                for k, v in payload.items(): setattr(existing, k, v)
+            else:
+                db.session.add(CommissionData(**payload))
+            processed_count += 1
         
         db.session.commit()
         return jsonify({
@@ -483,25 +541,17 @@ def get_bullhorn_summary():
         if not api.authenticate():
             return jsonify({'success': False, 'error': 'Authentication failed'})
         
-        # Get counts for current year
+        # Example lightweight ping/summary (left as-is)
         now = datetime.now()
         start_of_year = int(datetime(now.year, 1, 1).timestamp() * 1000)
-        
-        # Get permanent placements count
         perm_fields = ["id"]
         perm_where = f"employmentType='Permanent' AND dateBegin>={start_of_year}"
-        perm_data, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
-        
-        # Get contract time records count for current month
-        contract_time_fields = ["id"]
+        _, perm_total = api.fetch_entity("Placement", perm_fields, perm_where, 1)
+
+        # Contract time: count this month (rough)
         start_month_ms = int(datetime(now.year, now.month, 1).timestamp() * 1000)
-        end_month_ms = int(datetime(now.year, now.month + 1, 1).timestamp() * 1000) if now.month < 12 else int(datetime(now.year + 1, 1, 1).timestamp() * 1000)
-        contract_time_where = f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}"
-        
-        # Get all time records, then estimate contract portion
-        all_time_data, all_time_total = api.fetch_entity("PlacementTimeUnit", contract_time_fields, contract_time_where, 1)
-        
-        # Estimate contract time records as ~70% of total (adjust based on your data)
+        end_month_ms = int(datetime(now.year + (1 if now.month == 12 else 0), (1 if now.month == 12 else now.month + 1), 1).timestamp() * 1000)
+        _, all_time_total = api.fetch_entity("PlacementTimeUnit", ["id"], f"dateWorked>={start_month_ms} AND dateWorked<{end_month_ms}", 1)
         estimated_contract_time_total = int(all_time_total * 0.7) if all_time_total else 0
         
         return jsonify({
@@ -516,10 +566,97 @@ def get_bullhorn_summary():
     except Exception as e:
         return jsonify({'success': False, 'error': f'Summary error: {str(e)}'})
 
+# ================= NEW: Summary Endpoints =================
+@app.route('/api/summary/monthly', methods=['GET'])
+def summary_monthly():
+    if 'user_id' not in session:
+        return jsonify({'error':'Not authenticated'}), 401
+    year = int(request.args.get('year', datetime.now().year))
+    month_num = int(request.args.get('month', datetime.now().month))
+    employee_id = request.args.get('employee_id')
+    month_name = datetime(year, month_num, 1).strftime('%B')
+
+    q = db.session.query(
+        func.sum(CommissionData.gp).label('gp'),
+        func.sum(CommissionData.commission).label('commission')
+    ).filter(
+        CommissionData.year == year,
+        CommissionData.month == month_name
+    )
+
+    if session.get('role') == 'employee':
+        q = q.filter(CommissionData.employee_name == session.get('name'))
+    elif employee_id:
+        q = q.filter(CommissionData.employee_id == int(employee_id))
+
+    row = q.first()
+    return jsonify({
+        'success': True,
+        'year': year,
+        'month': month_name,
+        'totals': {
+            'gp': float(row.gp or 0.0),
+            'commission': float(row.commission or 0.0),
+            'hours': 0  # (optional) store & sum hours in DB if you want this populated
+        }
+    })
+
+@app.route('/api/summary/ytd', methods=['GET'])
+def summary_ytd():
+    if 'user_id' not in session:
+        return jsonify({'error':'Not authenticated'}), 401
+    year = int(request.args.get('year', datetime.now().year))
+    employee_id = request.args.get('employee_id')
+
+    q = db.session.query(
+        CommissionData.employee_name,
+        func.sum(CommissionData.gp).label('gp'),
+        func.sum(CommissionData.commission).label('commission')
+    ).filter(CommissionData.year == year)
+
+    if session.get('role') == 'employee':
+        q = q.filter(CommissionData.employee_name == session.get('name'))
+    elif employee_id:
+        q = q.filter(CommissionData.employee_id == int(employee_id))
+
+    q = q.group_by(CommissionData.employee_name).order_by(CommissionData.employee_name)
+    rows = [{'employee': e, 'gp': float(gp or 0), 'commission': float(cm or 0)} for e, gp, cm in q]
+    return jsonify({'success': True, 'year': year, 'rows': rows})
+
 # ================= Init DB & seed sample data =================
+def _column_exists(table_name: str, column_name: str) -> bool:
+    try:
+        res = db.session.execute(f"PRAGMA table_info({table_name});").fetchall()
+        cols = {r[1] for r in res}
+        return column_name in cols
+    except Exception:
+        return False
+
+def _ensure_commissiondata_columns():
+    # Lightweight migration for SQLite
+    add_cols = []
+    if not _column_exists('CommissionData', 'employee_id'):
+        add_cols.append("ALTER TABLE CommissionData ADD COLUMN employee_id INTEGER;")
+    if not _column_exists('CommissionData', 'year'):
+        add_cols.append("ALTER TABLE CommissionData ADD COLUMN year INTEGER;")
+    if not _column_exists('CommissionData', 'placement_id'):
+        add_cols.append("ALTER TABLE CommissionData ADD COLUMN placement_id INTEGER;")
+    if not _column_exists('CommissionData', 'unique_key'):
+        add_cols.append("ALTER TABLE CommissionData ADD COLUMN unique_key VARCHAR(200);")
+
+    for sql in add_cols:
+        try:
+            db.session.execute(sql)
+        except Exception:
+            pass
+    if add_cols:
+        try: db.session.commit()
+        except Exception: db.session.rollback()
+
 def init_db():
     with app.app_context():
         db.create_all()
+        _ensure_commissiondata_columns()
 
         if not Employee.query.filter_by(username='admin').first():
             users = [
@@ -536,14 +673,17 @@ def init_db():
                 db.session.add(user)
 
             samples = [
-                CommissionData(employee_name='Pam Henard', client='Ajax Building Company', status='Contract (Contract)', gp=336.96, hourly_gp=6.48, commission_rate='10.00%', commission=33.70, month='August', day=3),
-                CommissionData(employee_name='Pam Henard', client='Evolent', status='Contract (Temporary)', gp=117.84, hourly_gp=2.95, commission_rate='10.00%', commission=11.78, month='August', day=3),
-                CommissionData(employee_name='Sarah Johnson', client='TechCorp', status='Permanent', gp=450.00, hourly_gp=0.00, commission_rate='10.00%', commission=45.00, month='August', day=5)
+                CommissionData(employee_name='Pam Henard', employee_id=None, client='Ajax Building Company', status='Contract (Contract)', gp=336.96, hourly_gp=6.48, commission_rate='10.00%', commission=33.70, month='August', day=3, year=datetime.now().year, placement_id=None, unique_key='seed:1'),
+                CommissionData(employee_name='Pam Henard', employee_id=None, client='Evolent', status='Contract (Temporary)', gp=117.84, hourly_gp=2.95, commission_rate='10.00%', commission=11.78, month='August', day=3, year=datetime.now().year, placement_id=None, unique_key='seed:2'),
+                CommissionData(employee_name='Sarah Johnson', employee_id=None, client='TechCorp', status='Permanent', gp=450.00, hourly_gp=0.00, commission_rate='10.00%', commission=45.00, month='August', day=5, year=datetime.now().year, placement_id=12345, unique_key='perm:12345')
             ]
             for s in samples:
                 db.session.add(s)
 
-            db.session.commit()
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
 # Initialize database on startup
 init_db()

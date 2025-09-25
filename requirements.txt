@@ -1,12 +1,14 @@
 Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
 gunicorn==23.0.0
+
 # Data stack (pin to avoid binary mismatches on Azure)
 numpy==1.26.4
 pandas==2.2.2
 openpyxl==3.1.5
-# Network requests for Bullhorn API
+
+# Network requests
 requests==2.31.0
-# Password security (choose one)
+
+# Password security
 bcrypt==4.1.2
-# xlrd==1.2.0  # uncomment only if you truly need legacy .xls files
